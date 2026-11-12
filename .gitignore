@@ -1,0 +1,22 @@
+# Lingkungan virtual
+venv/
+
+# Rahasia (API key)
+.env
+.env.*
+!.env.example
+
+# Cache Python
+__pycache__/
+*.pyc
+
+# Database dan log
+*.db
+*.sqlite
+*.sqlite3
+logs/
+*.log
+
+# Editor
+.vscode/
+.idea/
