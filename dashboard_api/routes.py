@@ -69,15 +69,6 @@ def bootstrap(request: Request):
     host = request.headers.get("host", "")
     site = request.headers.get("sec-fetch-site", "")
     if not origin_ok(origin, host, site):
-        try:
-            (ROOT / "logs").mkdir(exist_ok=True)
-            (ROOT / "logs" / "bootstrap_debug.txt").write_text(
-                f"origin={origin!r}\nhost={host!r}\nsite={site!r}\n"
-                + "\n".join(f"{key}: {value}" for key, value in request.headers.items()),
-                encoding="utf-8",
-            )
-        except OSError:
-            pass
         raise HTTPException(403, "Origin ditolak")
     return {"token": TOKEN, "mode": __import__("os").environ.get("DASHBOARD_MODE", "mock")}
 
