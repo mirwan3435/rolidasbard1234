@@ -1,0 +1,78 @@
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { api } from "../api/client";
+
+type Slot = { slot: string; filled: boolean; last4: string; required: boolean };
+
+const LABELS: Record<string, string> = {
+  XAI_API_KEY: "xAI (wajib untuk Grok)",
+  TELEGRAM_BOT_TOKEN: "Token bot Telegram (opsional)",
+  TELEGRAM_CHAT_ID: "Chat ID Telegram (opsional)",
+};
+
+export function KeysPage() {
+  const client = useQueryClient();
+  const query = useQuery({ queryKey: ["keys"], queryFn: () => api<{ slots: Slot[] }>("/api/keys") });
+  return (
+    <div className="space-y-4 max-w-3xl">
+      <p className="text-sm text-muted">Write-only. Nilai tersimpan tidak pernah dikirim balik ke browser, hanya status dan 4 karakter terakhir.</p>
+      {(query.data?.slots || []).map((slot) => (
+        <SlotCard key={slot.slot} slot={slot} onSaved={() => client.invalidateQueries({ queryKey: ["keys"] })} />
+      ))}
+    </div>
+  );
+}
+
+function SlotCard({ slot, onSaved }: { slot: Slot; onSaved: () => void }) {
+  const [value, setValue] = useState("");
+  const [show, setShow] = useState(false);
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function save() {
+    setBusy(true);
+    setMessage("");
+    try {
+      await api(`/api/keys/${slot.slot}`, { method: "PUT", body: JSON.stringify({ value }) });
+      setValue("");
+      setShow(false);
+      setMessage("Tersimpan.");
+      onSaved();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Gagal menyimpan");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function test() {
+    setBusy(true);
+    setMessage("");
+    try {
+      const result = await api<{ ok: boolean; message: string }>(`/api/keys/${slot.slot}/test`, { method: "POST" });
+      setMessage(result.message);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Tes gagal");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="card p-4 space-y-2">
+      <h2 className="font-semibold">{LABELS[slot.slot] || slot.slot}</h2>
+      <p>Status: {slot.filled ? `Terisi ••••${slot.last4}` : "Kosong"}</p>
+      <label className="text-sm" htmlFor={slot.slot}>Nilai baru</label>
+      <div className="flex gap-2">
+        <input id={slot.slot} className="field" type={show ? "text" : "password"} autoComplete="off" value={value} onChange={(e) => setValue(e.target.value)} />
+        <button className="btn" type="button" onClick={() => setShow((v) => !v)}>{show ? "Sembunyikan" : "Tampilkan"}</button>
+      </div>
+      <p className="text-xs text-muted">Tampilkan hanya berlaku untuk teks yang sedang diketik.</p>
+      <div className="flex gap-2">
+        <button className="btn primary" disabled={busy || value.trim().length < 8} onClick={save}>Simpan</button>
+        <button className="btn" disabled={busy || !slot.filled} onClick={test}>Tes koneksi</button>
+      </div>
+      {message && <p>{message}</p>}
+    </section>
+  );
+}

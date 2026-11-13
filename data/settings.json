@@ -1,0 +1,7 @@
+{
+  "theme": "dark",
+  "timezone": "Asia/Makassar",
+  "refresh_ms": 2000,
+  "log_retention_days": 14,
+  "token_usd_per_million": 5.0
+}

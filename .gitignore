@@ -20,3 +20,13 @@ logs/
 # Editor
 .vscode/
 .idea/
+
+# Dashboard (runtime, rahasia, dependensi)
+data/backups/
+data/.dashboard_token
+data/status.json
+data/account.json
+data/paper.json
+dashboard_ui/node_modules/
+dashboard_ui/dist/
+.pytest_dashboard/

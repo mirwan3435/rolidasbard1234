@@ -3,3 +3,8 @@ numpy
 MetaTrader5
 python-dotenv
 requests
+fastapi
+uvicorn[standard]
+pydantic>=2
+httpx
+pytest

@@ -1,0 +1,11 @@
+{
+  "symbols": [
+    {"name": "XAUUSDm", "enabled": true, "role": "entry"},
+    {"name": "XAGUSDm", "enabled": true, "role": "entry"},
+    {"name": "USOILm", "enabled": true, "role": "entry"},
+    {"name": "USDJPYm", "enabled": true, "role": "entry"},
+    {"name": "EURUSDm", "enabled": true, "role": "entry"},
+    {"name": "USTEC_x100m", "enabled": true, "role": "entry"},
+    {"name": "DXYm", "enabled": true, "role": "context"}
+  ]
+}
