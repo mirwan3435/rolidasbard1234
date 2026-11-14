@@ -1,0 +1,11 @@
+{
+  "id": "liquidity_sweep",
+  "title": "Liquidity sweep",
+  "category": "ict",
+  "plain_language": "Harga menyapu high/low lalu menolak.",
+  "code_snippet": "# sample\n# liquidity_sweep: belum ada plugin produksi",
+  "example_candles": [],
+  "found_count": null,
+  "status": "unchecked",
+  "source": "sample"
+}

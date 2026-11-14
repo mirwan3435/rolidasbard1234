@@ -19,6 +19,7 @@ import { api } from "../api/client";
 import { type NodeState, type Status, useSettings } from "../components/Layout";
 import { fmtTime, statusColor, statusLabel } from "../lib/format";
 import { useUi } from "../store/ui";
+import { useI18n } from "../i18n";
 
 const INFO: Record<string, { title: string; agent: string; note?: string; summary: string; input: string; output: string }> = {
   mt5: { title: "MT5 Feed", agent: "SYSTEM", summary: "Membaca tick. Tidak ada pengiriman order dari dashboard.", input: "Terminal MT5 (read-only)", output: "Harga, spread, waktu tick" },
@@ -101,6 +102,7 @@ export function WorkflowPage() {
 }
 
 function WorkflowCanvas() {
+  const { t } = useI18n();
   const settings = useSettings();
   const tz = settings.data?.timezone ?? "Asia/Makassar";
   const refresh = settings.data?.refresh_ms ?? 2000;
@@ -177,14 +179,14 @@ function WorkflowCanvas() {
     <div className="h-[calc(100vh-140px)] min-h-[640px] grid gap-3" style={{ gridTemplateColumns: "1fr 380px" }}>
       <section className="card min-w-0 flex flex-col">
         <div className="flex items-center gap-3 p-3 border-b border-line">
-          <label htmlFor="symbol-filter">Simbol</label>
+          <label htmlFor="symbol-filter">{t("wf.symbol")}</label>
           <select id="symbol-filter" className="field" style={{ width: 220 }} value={symbol} onChange={(e) => setSymbol(e.target.value)}>
-            <option value="">Semua simbol</option>
+            <option value="">{t("wf.allSymbols")}</option>
             {(status.data?.symbols || []).map((row) => (
               <option key={row.name} value={row.name}>{row.name}</option>
             ))}
           </select>
-          <span className="text-sm text-muted">Node tidak bisa dihapus. Posisi tersimpan di browser ini.</span>
+          <span className="text-sm text-muted">{t("wf.drag")}</span>
         </div>
         <div className="flex-1">
           <ReactFlow
@@ -215,10 +217,10 @@ function WorkflowCanvas() {
       </section>
       <aside className="card p-3 overflow-auto">
         <h2 className="text-lg font-semibold">{info.title}</h2>
-        <div className="text-sm mt-1" style={{ color: statusColor(live?.status) }}>{statusLabel(live?.status)} · {live?.last_summary || "Belum ada aktivitas"}</div>
+        <div className="text-sm mt-1" style={{ color: statusColor(live?.status) }}>{statusLabel(live?.status)} · {live?.last_summary || t("wf.noActivity")}</div>
         <div className="flex flex-wrap gap-2 my-3">
-          {["ringkasan", "aktivitas", "io", "konfigurasi", "kesehatan"].map((name) => (
-            <button key={name} className={`btn ${tab === name ? "primary" : ""}`} onClick={() => setTab(name)}>{name}</button>
+          {[["ringkasan", "wf.summary"], ["aktivitas", "wf.activity"], ["io", "wf.io"], ["konfigurasi", "wf.config"], ["kesehatan", "wf.health"]].map(([name, key]) => (
+            <button key={name} className={`btn ${tab === name ? "primary" : ""}`} onClick={() => setTab(name)}>{t(key as "wf.summary")}</button>
           ))}
         </div>
         {tab === "ringkasan" && (
@@ -230,13 +232,13 @@ function WorkflowCanvas() {
         )}
         {tab === "aktivitas" && (
           <div>
-            <label className="text-sm" htmlFor="ev-symbol">Filter simbol event</label>
+            <label className="text-sm" htmlFor="ev-symbol">{t("wf.filter")}</label>
             <select id="ev-symbol" className="field my-2" value={symbolEvent} onChange={(e) => setSymbolEvent(e.target.value)}>
-              <option value="">Semua</option>
+              <option value="">{t("common.all")}</option>
               {(status.data?.symbols || []).map((row) => <option key={row.name}>{row.name}</option>)}
             </select>
             <ul className="space-y-2 text-sm">
-              {(events.data?.events || []).length === 0 && <li className="text-muted">Belum ada event untuk node ini.</li>}
+              {(events.data?.events || []).length === 0 && <li className="text-muted">{t("wf.noEvent")}</li>}
               {(events.data?.events || []).map((event, index) => (
                 <li key={index} className="border-b border-line pb-1">
                   <div className="text-muted">{fmtTime(String(event.ts || ""), tz)} · {String(event.symbol || "—")}</div>
@@ -249,18 +251,18 @@ function WorkflowCanvas() {
         {tab === "io" && <IoBlock event={events.data?.events?.[0]} />}
         {tab === "konfigurasi" && (
           <div className="text-sm space-y-2">
-            {selected === "risk" && <a className="btn" href="/config">Buka halaman Config</a>}
-            {["debate", "core", "whales"].includes(selected) && <a className="btn" href="/skill">Buka editor skill</a>}
-            {selected === "scope" && <p>SCOPE terkunci: hitungan murni, tanpa prompt.</p>}
-            {selected === "kill" && <p>Tidak ada pengaturan. File lock hanya dibaca.</p>}
-            {!["risk", "debate", "core", "whales", "scope", "kill"].includes(selected) && <p>Node ini tidak punya parameter yang diubah dari dashboard.</p>}
+            {selected === "risk" && <a className="btn" href="/config">{t("wf.openConfig")}</a>}
+            {["debate", "core", "whales"].includes(selected) && <a className="btn" href="/skill">{t("wf.openSkill")}</a>}
+            {selected === "scope" && <p>{t("wf.scopeLocked")}</p>}
+            {selected === "kill" && <p>{t("wf.killLocked")}</p>}
+            {!["risk", "debate", "core", "whales", "scope", "kill"].includes(selected) && <p>{t("wf.noParam")}</p>}
           </div>
         )}
         {tab === "kesehatan" && (
           <div className="text-sm space-y-2">
-            <p>Error 1 jam: {live?.errors_1h ?? 0}</p>
-            <p>Latensi terakhir: {live?.latency_ms != null ? `${live.latency_ms} ms` : "—"}</p>
-            <p>Ringkasan terakhir: {live?.last_summary || "—"}</p>
+            <p>{t("wf.errors")}: {live?.errors_1h ?? 0}</p>
+            <p>{t("wf.latency")}: {live?.latency_ms != null ? `${live.latency_ms} ms` : "—"}</p>
+            <p>{t("wf.last")}: {live?.last_summary || "—"}</p>
             <Spark values={live?.spark || []} />
           </div>
         )}
@@ -282,11 +284,12 @@ function IoBlock({ event }: { event?: Record<string, unknown> }) {
 }
 
 function JsonBox({ title, text }: { title: string; text: string }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(true);
   return (
     <div>
-      <button className="btn" onClick={() => setOpen((v) => !v)}>{open ? "Tutup" : "Buka"} {title}</button>
-      <button className="btn ml-2" onClick={() => navigator.clipboard.writeText(text)}>Salin</button>
+      <button className="btn" onClick={() => setOpen((v) => !v)}>{open ? t("common.close") : t("common.open")} {title}</button>
+      <button className="btn ml-2" onClick={() => navigator.clipboard.writeText(text)}>{t("common.copy")}</button>
       {open && <pre className="mono text-xs mt-2 whitespace-pre-wrap">{text}</pre>}
     </div>
   );

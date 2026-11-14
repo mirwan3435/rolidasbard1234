@@ -1,0 +1,11 @@
+{
+  "id": "fvg",
+  "title": "FVG",
+  "category": "price_action",
+  "plain_language": "Celah tiga candle. Bukan jaminan harga kembali.",
+  "code_snippet": "# sample\n# fvg: belum ada plugin produksi",
+  "example_candles": [],
+  "found_count": null,
+  "status": "unchecked",
+  "source": "sample"
+}

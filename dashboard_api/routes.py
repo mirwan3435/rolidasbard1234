@@ -35,6 +35,11 @@ class RollbackBody(BaseModel):
     version: int = Field(ge=1)
 
 
+class ParamsBody(BaseModel):
+    params: dict
+    note: str = Field(default="", max_length=200)
+
+
 class SettingsBody(BaseModel):
     theme: str
     timezone: str
@@ -243,6 +248,18 @@ def get_agent(name: str):
 def put_agent(name: str, body: AgentBody):
     try:
         return agents.save_agent(name, body.model_dump(), body.note)
+    except PermissionError as exc:
+        raise HTTPException(403, str(exc))
+    except KeyError:
+        raise HTTPException(404, "Agent tidak dikenal")
+    except ValueError as exc:
+        raise HTTPException(422, str(exc))
+
+
+@router.put("/agents/{name}/params")
+def put_agent_params(name: str, body: ParamsBody):
+    try:
+        return agents.save_params(name, body.params, body.note)
     except PermissionError as exc:
         raise HTTPException(403, str(exc))
     except KeyError:

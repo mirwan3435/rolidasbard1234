@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
 import { useSettings } from "../components/Layout";
 import { fmtTime, money } from "../lib/format";
+import { useI18n } from "../i18n";
 
 type RiskState = {
   virtual_capital: number;
@@ -35,43 +36,44 @@ function Gauge({ label, value, max }: { label: string; value: number; max: numbe
 }
 
 export function RiskPage() {
+  const { t } = useI18n();
   const settings = useSettings();
   const refresh = settings.data?.refresh_ms ?? 2000;
   const state = useQuery({ queryKey: ["risk"], queryFn: () => api<RiskState>("/api/risk/state"), refetchInterval: refresh });
   const decisions = useQuery({ queryKey: ["decisions"], queryFn: () => api<{ decisions: Decision[] }>("/api/risk/decisions"), refetchInterval: refresh });
   const data = state.data;
   if (state.isLoading) return <div className="skeleton h-40" />;
-  if (!data) return <p>State RISK belum terbaca.</p>;
+  if (!data) return <p>{t("risk.missing")}</p>;
   const kill = data.kill_switch;
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-4 gap-3">
-        <Card title="Modal virtual" value={money(data.virtual_capital)} />
-        <Card title="Equity" value={money(data.equity)} />
-        <Card title="Puncak" value={money(data.peak)} />
-        <Card title="Profil" value={data.active_profile} />
+        <Card title={t("risk.capital")} value={money(data.virtual_capital)} />
+        <Card title={t("risk.equity")} value={money(data.equity)} />
+        <Card title={t("risk.peak")} value={money(data.peak)} />
+        <Card title={t("risk.profile")} value={data.active_profile} />
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <Card title="Drawdown" value={`${data.drawdown_pct.toFixed(2)}% / batas ${data.max_drawdown_pct}%`} />
-        <Card title="Rugi sesi" value={`${data.session_loss_pct.toFixed(2)}% / batas ${data.daily_loss_limit_pct}%`} />
+        <Card title={t("risk.dd")} value={`${data.drawdown_pct.toFixed(2)}% / ${t("risk.limit")} ${data.max_drawdown_pct}%`} />
+        <Card title={t("risk.session")} value={`${data.session_loss_pct.toFixed(2)}% / ${t("risk.limit")} ${data.daily_loss_limit_pct}%`} />
       </div>
       <section className="card p-3 space-y-3">
-        <h2 className="font-semibold">Eksposur</h2>
-        <Gauge label="Posisi terbuka" value={data.open_positions} max={data.max_open_positions} />
-        <Gauge label="Total risiko USD" value={data.total_risk_usd} max={data.risk_limit_usd} />
-        <Gauge label="Total margin USD" value={data.total_margin_usd} max={data.margin_limit_usd} />
+        <h2 className="font-semibold">{t("risk.exposure")}</h2>
+        <Gauge label={t("risk.positions")} value={data.open_positions} max={data.max_open_positions} />
+        <Gauge label={t("risk.riskUsd")} value={data.total_risk_usd} max={data.risk_limit_usd} />
+        <Gauge label={t("risk.marginUsd")} value={data.total_margin_usd} max={data.margin_limit_usd} />
       </section>
       <section className="card p-3" style={{ borderColor: kill.active ? "var(--bad)" : undefined }}>
-        <h2 className="font-semibold">Kill-switch {kill.active ? "AKTIF" : "tidak aktif"}</h2>
+        <h2 className="font-semibold">Kill-switch {kill.active ? t("risk.killOn") : t("risk.killOff")}</h2>
         {kill.active && <p className="mt-2">{fmtTime(kill.since, settings.data?.timezone)} — {kill.reason}</p>}
         <p className="text-sm mt-2">{kill.reset_hint}</p>
       </section>
       <section className="card p-3 overflow-auto">
-        <h2 className="font-semibold mb-2">Posisi terbuka</h2>
-        {data.positions.length === 0 && <p className="text-muted">Tidak ada posisi virtual.</p>}
+        <h2 className="font-semibold mb-2">{t("risk.positions")}</h2>
+        {data.positions.length === 0 && <p className="text-muted">{t("risk.noPositions")}</p>}
         {data.positions.length > 0 && (
           <table className="table">
-            <thead><tr><th>Simbol</th><th>Arah</th><th>Lot</th><th>Entry</th><th>Stop</th><th>Risiko USD</th></tr></thead>
+            <thead><tr><th>{t("common.symbol")}</th><th>{t("common.direction")}</th><th>Lot</th><th>Entry</th><th>Stop</th><th>{t("risk.riskUsd")}</th></tr></thead>
             <tbody>
               {data.positions.map((pos, index) => (
                 <tr key={index}><td>{pos.symbol}</td><td>{pos.direction}</td><td>{pos.lot}</td><td>{pos.entry}</td><td>{pos.stop}</td><td>{money(pos.risk_usd)}</td></tr>
@@ -81,16 +83,16 @@ export function RiskPage() {
         )}
       </section>
       <section className="card p-3 overflow-auto">
-        <h2 className="font-semibold mb-2">Keputusan RISK terakhir</h2>
+        <h2 className="font-semibold mb-2">{t("risk.decisions")}</h2>
         <table className="table">
-          <thead><tr><th>Waktu</th><th>Simbol</th><th>Hasil</th><th>Alasan</th></tr></thead>
+          <thead><tr><th>{t("common.time")}</th><th>{t("common.symbol")}</th><th>{t("common.result")}</th><th>{t("common.reason")}</th></tr></thead>
           <tbody>
-            {(decisions.data?.decisions || []).length === 0 && <tr><td colSpan={4}>Belum ada keputusan. Tunggu event mock atau sistem trading.</td></tr>}
+            {(decisions.data?.decisions || []).length === 0 && <tr><td colSpan={4}>{t("risk.none")}</td></tr>}
             {(decisions.data?.decisions || []).map((row, index) => (
               <tr key={index}>
                 <td>{fmtTime(row.ts, settings.data?.timezone)}</td>
                 <td>{row.symbol}</td>
-                <td style={{ color: row.approved ? "var(--ok)" : "var(--bad)" }}>{row.approved ? "disetujui" : "ditolak"}</td>
+                <td style={{ color: row.approved ? "var(--ok)" : "var(--bad)" }}>{row.approved ? t("risk.approved") : t("risk.rejected")}</td>
                 <td>{row.approved ? row.summary : (row.reasons || []).join("; ") || row.summary}</td>
               </tr>
             ))}

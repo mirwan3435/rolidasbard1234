@@ -31,6 +31,10 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   return data as T;
 }
 
+export function sessionToken() {
+  return token;
+}
+
 export function openEvents(onEvent: (event: Record<string, unknown>) => void, filter: Record<string, string> = {}) {
   const params = new URLSearchParams();
   Object.entries(filter).forEach(([key, value]) => {

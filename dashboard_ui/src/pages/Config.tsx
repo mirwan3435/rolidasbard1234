@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { api } from "../api/client";
+import { useI18n } from "../i18n";
+import type { DictKey } from "../i18n/id";
 
 type Profile = {
   risk_per_trade_pct: number;
@@ -22,15 +24,15 @@ type ConfigDoc = {
   profiles: { standard: Profile; experiment_a: Profile };
 };
 
-const FIELDS: { key: keyof Profile; label: string; step?: string }[] = [
-  { key: "risk_per_trade_pct", label: "Risiko per trade %", step: "0.1" },
-  { key: "max_open_positions", label: "Maks posisi terbuka", step: "1" },
-  { key: "max_total_risk_pct", label: "Maks total risiko %", step: "0.1" },
-  { key: "max_margin_pct", label: "Maks margin %", step: "1" },
-  { key: "daily_loss_limit_pct", label: "Batas rugi sesi %", step: "0.1" },
-  { key: "max_drawdown_pct", label: "Batas drawdown %", step: "0.1" },
-  { key: "max_spread_to_stop_ratio", label: "Maks rasio spread/stop", step: "0.01" },
-  { key: "commission_per_lot_usd", label: "Komisi USD per lot", step: "0.1" },
+const FIELDS: { key: keyof Profile; label: DictKey; step?: string }[] = [
+  { key: "risk_per_trade_pct", label: "config.field.risk_per_trade_pct", step: "0.1" },
+  { key: "max_open_positions", label: "config.field.max_open_positions", step: "1" },
+  { key: "max_total_risk_pct", label: "config.field.max_total_risk_pct", step: "0.1" },
+  { key: "max_margin_pct", label: "config.field.max_margin_pct", step: "1" },
+  { key: "daily_loss_limit_pct", label: "config.field.daily_loss_limit_pct", step: "0.1" },
+  { key: "max_drawdown_pct", label: "config.field.max_drawdown_pct", step: "0.1" },
+  { key: "max_spread_to_stop_ratio", label: "config.field.max_spread_to_stop_ratio", step: "0.01" },
+  { key: "commission_per_lot_usd", label: "config.field.commission_per_lot_usd", step: "0.1" },
 ];
 
 const loose = z.object({
@@ -40,6 +42,7 @@ const loose = z.object({
 });
 
 export function ConfigPage() {
+  const { t } = useI18n();
   const client = useQueryClient();
   const query = useQuery({
     queryKey: ["config"],
@@ -75,7 +78,7 @@ export function ConfigPage() {
   async function preview() {
     const check = loose.safeParse(draft);
     if (!check.success) {
-      setMessage("Tipe nilai tidak valid.");
+      setMessage(t("config.badType"));
       return;
     }
     try {
@@ -85,7 +88,7 @@ export function ConfigPage() {
       });
       setDiff(result.diff || []);
       setOpen(true);
-      setMessage(result.diff?.length ? "Periksa diff sebelum menyimpan." : "Tidak ada perubahan.");
+      setMessage(result.diff?.length ? t("common.checkDiff") : t("common.noChange"));
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Ditolak");
       setOpen(false);
@@ -99,7 +102,7 @@ export function ConfigPage() {
         body: JSON.stringify({ ...draft, confirm: true }),
       });
       setOpen(false);
-      setMessage(result.reload_note || "Tersimpan.");
+      setMessage(result.reload_note || t("common.saved"));
       client.invalidateQueries({ queryKey: ["config"] });
       client.invalidateQueries({ queryKey: ["status-header"] });
     } catch (error) {
@@ -110,12 +113,12 @@ export function ConfigPage() {
   return (
     <div className="space-y-4 max-w-5xl">
       <p className="text-sm">{query.data.reload_note}</p>
-      <p className="text-sm text-muted">Batas keras ada di <span className="mono">dashboard_api/hard_limits.py</span>. Rugi sesi dan drawdown tidak bisa dinaikkan melewati bawaan. Profil standard: risiko per trade maks 5%.</p>
+      <p className="text-sm text-muted">{t("config.limits")}</p>
       <div className="card p-4 grid grid-cols-2 gap-3">
-        <label>Modal virtual
+        <label>{t("config.capital")}
           <input className="field" type="number" value={draft.virtual_capital} onChange={(e) => setDraft({ ...draft, virtual_capital: Number(e.target.value) })} />
         </label>
-        <label>Profil aktif
+        <label>{t("config.profile")}
           <select className="field" value={draft.active_profile} onChange={(e) => setDraft({ ...draft, active_profile: e.target.value as ConfigDoc["active_profile"] })}>
             <option value="standard">standard</option>
             <option value="experiment_a">experiment_a</option>
@@ -129,19 +132,21 @@ export function ConfigPage() {
       </div>
       <label className="flex gap-2 items-center card p-3">
         <input type="checkbox" checked={draft.commission_confirmed} onChange={(e) => setDraft({ ...draft, commission_confirmed: e.target.checked })} />
-        Saya sudah cek komisi asli akun
+        {t("config.commission")}
       </label>
-      {!draft.commission_confirmed && <div className="banner warn">Selama ini belum dikonfirmasi, banner kuning tetap tampil bila komisi masih 7.0.</div>}
-      <button className="btn primary" onClick={preview}>Tinjau perubahan</button>
+      <p className="text-sm text-muted">{t("config.micro")}</p>
+      <pre className="mono text-xs whitespace-pre-wrap">{JSON.stringify((draft.profiles as { micro_10usd?: unknown }).micro_10usd || {}, null, 2)}</pre>
+      {!draft.commission_confirmed && <div className="banner warn">{t("config.banner")}</div>}
+      <button className="btn primary" onClick={preview}>{t("common.preview")}</button>
       {message && <p className="text-sm whitespace-pre-wrap">{message}</p>}
       {open && (
         <section className="card p-4 space-y-2">
-          <h2 className="font-semibold">Diff</h2>
-          {diff.length === 0 && <p>Tidak ada perubahan.</p>}
+          <h2 className="font-semibold">{t("config.diff")}</h2>
+          {diff.length === 0 && <p>{t("common.noChange")}</p>}
           {diff.map((row) => (
             <p key={row.path} className="mono text-sm">{row.path}: {String(row.before)} → {String(row.after)}</p>
           ))}
-          <button className="btn primary" disabled={diff.length === 0} onClick={commit}>Konfirmasi simpan</button>
+          <button className="btn primary" disabled={diff.length === 0} onClick={commit}>{t("common.confirm")}</button>
         </section>
       )}
     </div>
@@ -149,15 +154,16 @@ export function ConfigPage() {
 }
 
 function ProfileCard({ title, profile, onChange, stopLocked = false }: { title: string; profile: Profile; onChange: (key: keyof Profile, value: string) => void; stopLocked?: boolean }) {
+  const { t } = useI18n();
   return (
     <section className="card p-3 space-y-2">
       <h2 className="font-semibold">{title}</h2>
       {FIELDS.map((field) => (
-        <label key={field.key} className="block text-sm">{field.label}
+        <label key={field.key} className="block text-sm">{t(field.label)}
           <input className="field" type="number" step={field.step} value={Number(profile[field.key] ?? 0)} onChange={(e) => onChange(field.key, e.target.value)} />
         </label>
       ))}
-      <label className="block text-sm">Stop % dari harga
+      <label className="block text-sm">{t("config.stop")}
         <input className="field" type="number" step="0.1" disabled={stopLocked} value={profile.stop_pct_of_price ?? ""} placeholder={stopLocked ? "kosong (profil standard)" : ""} onChange={(e) => onChange("stop_pct_of_price", e.target.value)} />
       </label>
     </section>

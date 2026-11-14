@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Verdict",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["signal_id", "verdict", "score_adjust", "reasons", "risk_flags", "confidence"],
+  "properties": {
+    "signal_id": {"type": "string"},
+    "verdict": {"enum": ["accept", "reduce", "reject"]},
+    "score_adjust": {"type": "integer", "minimum": -10, "maximum": 0},
+    "reasons": {"type": "array", "maxItems": 5, "items": {"type": "string", "maxLength": 200}},
+    "risk_flags": {
+      "type": "array",
+      "maxItems": 6,
+      "items": {"enum": ["news", "low_liquidity", "htf_conflict", "overextended", "correlation", "spread", "other"]}
+    },
+    "confidence": {"type": "number", "minimum": 0, "maximum": 1}
+  }
+}

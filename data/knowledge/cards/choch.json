@@ -1,0 +1,11 @@
+{
+  "id": "choch",
+  "title": "CHOCH",
+  "category": "structure",
+  "plain_language": "Change of character: swing berlawanan yang menandai pergeseran.",
+  "code_snippet": "# sample\n# choch: belum ada plugin produksi",
+  "example_candles": [],
+  "found_count": null,
+  "status": "unchecked",
+  "source": "sample"
+}

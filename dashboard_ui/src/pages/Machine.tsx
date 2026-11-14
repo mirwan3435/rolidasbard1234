@@ -1,20 +1,51 @@
-import { useQuery } from "@tanstack/react-query";
-import { api } from "../api/client";
-import { Panel } from "../components/ui/Panel";
+import { useEffect, useState } from "react";
+import { api, sessionToken } from "../api/client";
+import { Sparkline } from "../components/ui/Charts";
+import { KpiCard, Panel, Spinner } from "../components/ui/Panel";
 import { useI18n } from "../i18n";
 
-type Machine = { cpu_pct: number; ram_pct: number; disk_free_gb: number; python: string; uptime_sec: number; source: "real" | "sample" };
+type Machine = {
+  cpu_pct: number; ram_pct: number; disk_free_gb: number; disk_pct: number; python: string; node: string | null;
+  uptime_sec: number; port_8765: string; port_5173: string; terminal64: boolean;
+  xai: { status: string; latency_ms: number | null }; history?: { cpu: number; ram: number }[]; source: "real" | "sample";
+};
 
 export default function MachinePage() {
   const { t } = useI18n();
-  const query = useQuery({ queryKey: ["machine"], queryFn: () => api<Machine>("/api/machines"), refetchInterval: 2000 });
-  const data = query.data;
-  if (!data) return <Panel title={t("machine.title")}><p>{t("common.loading")}</p></Panel>;
+  const [data, setData] = useState<Machine | null>(null);
+  useEffect(() => {
+    let stop = false;
+    api<Machine>("/api/machines").then((row) => { if (!stop) setData(row); }).catch(() => undefined);
+    const protocol = location.protocol === "https:" ? "wss" : "ws";
+    const socket = new WebSocket(`${protocol}://${location.host}/api/ws/machine?token=${encodeURIComponent(sessionToken())}`);
+    socket.onmessage = (message) => {
+      try { setData(JSON.parse(message.data)); } catch { /* abaikan bingkai rusak */ }
+    };
+    return () => { stop = true; socket.close(); };
+  }, []);
+  if (!data) return <Panel title={t("machine.title")}><Spinner /></Panel>;
+  const hours = Math.floor(data.uptime_sec / 3600);
   return (
     <Panel title={t("machine.title")} source={data.source}>
-      <p>CPU {data.cpu_pct.toFixed(0)}% · RAM {data.ram_pct.toFixed(0)}% · disk kosong {data.disk_free_gb} GB</p>
-      <p>Python {data.python} · uptime {Math.round(data.uptime_sec / 3600)} jam</p>
-      <div className="h-2 mt-2" style={{ background: "var(--surface-2)" }}><div style={{ width: `${Math.min(100, data.cpu_pct)}%`, height: 8, background: "var(--accent)" }} /></div>
+      <div className="grid grid-cols-4 gap-2">
+        <KpiCard label={t("machine.cpu")} value={`${data.cpu_pct.toFixed(0)}%`} />
+        <KpiCard label={t("machine.ram")} value={`${data.ram_pct.toFixed(0)}%`} />
+        <KpiCard label={t("machine.disk")} value={`${data.disk_free_gb} GB`} />
+        <KpiCard label={t("machine.uptime")} value={`${hours} h`} />
+      </div>
+      <div className="flex gap-4 mt-3">
+        <Sparkline values={(data.history || []).map((row) => row.cpu)} />
+        <Sparkline values={(data.history || []).map((row) => row.ram)} />
+      </div>
+      <table className="table mt-3">
+        <tbody>
+          <tr><td>Python</td><td>{data.python}</td></tr>
+          <tr><td>Node</td><td>{data.node || t("machine.nodeMissing")}</td></tr>
+          <tr><td>{t("machine.ports")}</td><td>8765 {data.port_8765} · 5173 {data.port_5173}</td></tr>
+          <tr><td>{t("machine.terminal")}</td><td>{data.terminal64 ? t("machine.present") : t("machine.absent")}</td></tr>
+          <tr><td>xAI</td><td>{data.xai.status}{data.xai.latency_ms != null ? ` · ${data.xai.latency_ms} ms` : ""}</td></tr>
+        </tbody>
+      </table>
     </Panel>
   );
 }

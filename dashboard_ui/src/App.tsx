@@ -12,6 +12,7 @@ import { SettingsPage } from "./pages/Settings";
 import { SkillsPage } from "./pages/Skills";
 import { SymbolsPage } from "./pages/Symbols";
 import { Spinner } from "./components/ui/Panel";
+import { useI18n } from "./i18n";
 import { WorkflowPage } from "./pages/Workflow";
 const LabPage = lazy(() => import("./pages/Lab"));
 const ResearchPage = lazy(() => import("./pages/Research"));
@@ -22,6 +23,7 @@ const CostsPage = lazy(() => import("./pages/Costs"));
 const MachinePage = lazy(() => import("./pages/Machine"));
 
 export default function App() {
+  const { t } = useI18n();
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
@@ -45,17 +47,17 @@ export default function App() {
   if (failed) {
     return (
       <div className="p-8 max-w-2xl">
-        <h1 className="text-xl font-semibold">Backend tidak terhubung</h1>
-        <p className="mt-3">Jalankan dari PowerShell di folder PYTHON_AI_LAB:</p>
+        <h1 className="text-xl font-semibold">{t("shell.backend")}</h1>
+        <p className="mt-3">{t("shell.runHint")}</p>
         <pre className="mono mt-2">.\scripts\run_dashboard.ps1</pre>
-        <p className="mt-3 text-sm text-muted">Dashboard proses terpisah. Sistem trading tidak ikut mati kalau halaman ini gagal.</p>
+        <p className="mt-3 text-sm text-muted">{t("shell.separate")}</p>
         <button className="btn primary mt-4" type="button" onClick={() => setAttempt((n) => n + 1)}>
-          Coba lagi
+          {t("shell.retry")}
         </button>
       </div>
     );
   }
-  if (!ready) return <div className="p-8"><div className="skeleton h-10 w-64" /></div>;
+  if (!ready) return <div className="p-8"><Spinner /></div>;
 
   return (
     <Routes>

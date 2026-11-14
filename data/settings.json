@@ -3,5 +3,13 @@
   "timezone": "Asia/Makassar",
   "refresh_ms": 2000,
   "log_retention_days": 14,
-  "token_usd_per_million": 5.0
+  "token_usd_per_million": 5.0,
+  "language": "id",
+  "app_title": "JARVIS // TRADE-BREIN",
+  "calendar_provider": "csv",
+  "net_check_url": "https://example.com",
+  "grok_price_in_per_million": null,
+  "grok_price_out_per_million": null,
+  "grok_daily_token_budget": 100000,
+  "grok_daily_usd_budget": null
 }

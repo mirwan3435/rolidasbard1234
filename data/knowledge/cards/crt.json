@@ -1,0 +1,11 @@
+{
+  "id": "crt",
+  "title": "CRT",
+  "category": "ict",
+  "plain_language": "Candle referensi di-sweep, lalu close kembali ke dalam range.",
+  "code_snippet": "# sample\n# crt: belum ada plugin produksi",
+  "example_candles": [],
+  "found_count": null,
+  "status": "unchecked",
+  "source": "sample"
+}

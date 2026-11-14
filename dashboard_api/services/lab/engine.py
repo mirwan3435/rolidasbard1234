@@ -109,6 +109,7 @@ def run_backtest(bars, detect, params, spec, equity, risk_pct, commission_per_lo
             "cost_usd": round(cost, 4),
             "r_multiple": round(r_multiple, 4),
             "reason": exit_reason,
+            "time": bars[i + 1].get("time"),
             "source": "real",
         })
         equity_curve.append({"i": exit_index, "equity": round(cash, 4)})
@@ -141,5 +142,27 @@ def kpis(result):
         "expectancy_usd": (sum(t["result_usd"] for t in trades) / count) if count else 0,
         "profit_factor": (gross_win / gross_loss) if gross_loss else None,
         "max_drawdown_pct": max_dd,
+        "max_drawdown_r": None,
         "net_usd": sum(t["result_usd"] for t in trades),
+        "monthly_r": _monthly(trades),
+        "drawdown_curve": _drawdown(result["equity_curve"]),
     }
+
+
+def _monthly(trades):
+    buckets = {}
+    for trade in trades:
+        key = str(trade.get("time") or "na")[:7]
+        buckets[key] = buckets.get(key, 0.0) + float(trade["r_multiple"])
+    return [{"month": key, "r": round(value, 4)} for key, value in buckets.items()]
+
+
+def _drawdown(curve):
+    peak = None
+    rows = []
+    for point in curve:
+        value = point["equity"]
+        peak = value if peak is None else max(peak, value)
+        dd = ((peak - value) / peak * 100) if peak else 0
+        rows.append({"i": point["i"], "dd": round(dd, 4)})
+    return rows

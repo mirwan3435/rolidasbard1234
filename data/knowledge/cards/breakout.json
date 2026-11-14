@@ -1,0 +1,11 @@
+{
+  "id": "breakout",
+  "title": "Breakout",
+  "category": "price_action",
+  "plain_language": "Body candle menutup di luar range, bukan hanya sumbu.",
+  "code_snippet": "# sample\n# breakout: belum ada plugin produksi",
+  "example_candles": [],
+  "found_count": null,
+  "status": "unchecked",
+  "source": "sample"
+}

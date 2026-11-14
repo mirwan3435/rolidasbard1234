@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Signal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "ts", "symbol", "broker_symbol", "direction", "strategy", "mode", "tf_entry", "tf_bias", "order_type", "entry", "sl", "tp", "rr", "atr", "spread_at_signal", "tags", "score_components", "score", "valid_until", "invalidation"],
+  "properties": {
+    "id": {"type": "string"},
+    "ts": {"type": "string"},
+    "symbol": {"type": "string"},
+    "broker_symbol": {"type": "string"},
+    "direction": {"enum": ["buy", "sell"]},
+    "strategy": {"type": "string"},
+    "mode": {"enum": ["scalp", "intraday", "swing"]},
+    "tf_entry": {"type": "string"},
+    "tf_bias": {"type": "string"},
+    "order_type": {"enum": ["market", "limit", "stop"]},
+    "entry": {"type": "number"},
+    "sl": {"type": "number"},
+    "tp": {"type": "number"},
+    "rr": {"type": "number", "minimum": 0},
+    "atr": {"type": "number", "exclusiveMinimum": 0},
+    "spread_at_signal": {"type": "number", "minimum": 0},
+    "tags": {"type": "array", "items": {"type": "string"}},
+    "score_components": {"type": "object"},
+    "score": {"type": "integer", "minimum": 0, "maximum": 100},
+    "expectancy_ref": {"type": ["number", "null"]},
+    "valid_until": {"type": "string"},
+    "invalidation": {"type": "string", "maxLength": 240},
+    "source": {"enum": ["real", "sample"]}
+  }
+}

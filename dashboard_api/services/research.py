@@ -49,6 +49,53 @@ def _tag(text: str):
     return {"concepts": found[:8], "source_type": source, "summary": text[:280], "tagger": "keyword"}
 
 
+def _try_grok(text: str):
+    """Pakai Grok hanya kalau key, model, dan budget ada. Gagal apa pun kembali ke kata kunci."""
+    try:
+        from dashboard_api.services.costs import budget_guard, record
+        from dashboard_api.services.env_io import read_values
+        secret = read_values().get("XAI_API_KEY") or ""
+        if not secret:
+            return None
+        core = DATA / "agents" / "CORE.json"
+        model = ""
+        if core.is_file():
+            model = str(json.loads(core.read_text(encoding="utf-8")).get("model") or "").strip()
+        if not model:
+            return None
+        budget_guard()
+        response = requests.post(
+            "https://api.x.ai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {secret}"},
+            json={
+                "model": model,
+                "temperature": 0,
+                "max_tokens": 300,
+                "messages": [{"role": "user", "content": "Reply JSON only with concepts (string[]), source_type (youtube|github|arxiv|article|note), summary. No other keys.\n" + text[:4000]}],
+            },
+            timeout=8,
+        )
+        if response.status_code != 200:
+            return None
+        body = response.json()
+        usage = body.get("usage") or {}
+        record("PROFILER", model, int(usage.get("prompt_tokens") or 0), int(usage.get("completion_tokens") or 0))
+        content = body["choices"][0]["message"]["content"]
+        start = content.find("{")
+        end = content.rfind("}")
+        parsed = json.loads(content[start:end + 1] if start >= 0 else content)
+        if set(parsed) - {"concepts", "source_type", "summary"}:
+            return None
+        if parsed.get("source_type") not in {"youtube", "github", "arxiv", "article", "note"}:
+            return None
+        concepts = parsed.get("concepts")
+        if not isinstance(concepts, list) or not concepts or any(not isinstance(item, str) or len(item) > 40 for item in concepts):
+            return None
+        return {"concepts": concepts[:8], "source_type": parsed["source_type"], "summary": str(parsed.get("summary") or "")[:280], "tagger": "grok"}
+    except Exception:
+        return None
+
+
 def ingest(kind: str, value: str):
     if kind not in {"url", "text"}:
         raise ValueError("Jenis harus url atau text")
@@ -66,7 +113,7 @@ def ingest(kind: str, value: str):
         if response.status_code >= 400:
             raise ValueError(f"URL menjawab {response.status_code}")
         text = response.text[:20000]
-    tagged = _tag(text if kind == "text" else value + "\n" + text[:500])
+    tagged = _try_grok(text if kind == "text" else value + "\n" + text[:500]) or _tag(text if kind == "text" else value + "\n" + text[:500])
     row = {
         "ts": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
         "kind": kind,

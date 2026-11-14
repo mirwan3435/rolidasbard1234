@@ -29,6 +29,9 @@ class CardVerdict(BaseModel):
 class LabRunBody(BaseModel):
     symbol: str
     timeframe: str
+    strategy: str = "reference_atr_breakout"
+    date_from: str = ""
+    date_to: str = ""
     params: dict = Field(default_factory=dict)
 
 
@@ -91,9 +94,11 @@ def lab_start(body: LabRunBody):
     profile = dict(account["profile"])
     profile["equity"] = account["virtual_capital"]
     try:
-        return start_run(body.symbol, body.timeframe, body.params, SYMBOL_SPECS[body.symbol], profile)
+        return start_run(body.symbol, body.timeframe, body.params, SYMBOL_SPECS[body.symbol], profile, body.strategy, body.date_from, body.date_to)
     except FileNotFoundError as exc:
         raise HTTPException(404, str(exc))
+    except KeyError:
+        raise HTTPException(404, "Strategi tidak dikenal")
 
 
 @router.post("/lab/history")
@@ -151,8 +156,8 @@ def agentroom_state():
 
 
 @router.get("/decisions")
-def decision_list(symbol: str = "", strategy: str = "", outcome: str = "", limit: int = Query(50, ge=1, le=200)):
-    return {"decisions": decisions.query(symbol, strategy, outcome, limit=limit)}
+def decision_list(symbol: str = "", strategy: str = "", outcome: str = "", since: str = "", until: str = "", limit: int = Query(50, ge=1, le=200)):
+    return {"decisions": decisions.query(symbol, strategy, outcome, since, until, limit=limit)}
 
 
 @router.get("/decisions/{decision_id}")
@@ -166,6 +171,36 @@ def decision_one(decision_id: str):
 @router.get("/promotion")
 def promotion_ladder():
     return promotion.ladder()
+
+
+@router.post("/connections/telegram/test")
+def telegram_test():
+    from dashboard_api.services.connections import send_telegram_test
+    return send_telegram_test()
+
+
+@router.websocket("/ws/handoff")
+async def ws_handoff(ws: WebSocket, token: str = ""):
+    if token != TOKEN:
+        await ws.close(code=1008)
+        return
+    await ws.accept()
+    import asyncio
+    from dashboard_api.services import events
+    seen = set()
+    try:
+        while True:
+            for event in events.query_events(limit=40):
+                if event.get("type") not in {"handoff", "signal"}:
+                    continue
+                key = f"{event.get('ts')}|{event.get('agent')}|{event.get('summary')}"
+                if key in seen:
+                    continue
+                seen.add(key)
+                await ws.send_json(event)
+            await asyncio.sleep(2)
+    except WebSocketDisconnect:
+        return
 
 
 @router.websocket("/ws/machine")

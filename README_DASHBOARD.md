@@ -101,6 +101,8 @@ Batas yang tidak bisa dilanggar UI ada di `dashboard_api/hard_limits.py` (misaln
 - Nama simbol di `data/symbols.json` tetap nama broker yang sudah ada. Nama kanonik ada di `KONSEP_TRADING_BOT.md`.
 - Tidak ada tombol live, order, atau reset kill-switch.
 
+Kelengkapan visual JARVIS (emblem, kartu skill, lab, peta riset, ruangan, keputusan, biaya, mesin, bahasa) memakai data nyata kalau ada dan lencana CONTOH kalau belum. Otak trading ada sebagai logika lokal di `brain/`, `strategies/`, `services/`, `backtest/`, `profiles/pairs.yaml`, `contracts/`, dan `mql5/PosMgr_EA.mq5`. EA itu default tidak berdagang. API key tetap di halaman API Key. Tidak ada tombol order atau reset kill-switch.
+
 ## Keamanan (BAGIAN 6)
 
 1. Bind `127.0.0.1` saja, CORS hanya origin Vite lokal.

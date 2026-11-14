@@ -1,0 +1,11 @@
+{
+  "id": "range",
+  "title": "Range",
+  "category": "structure",
+  "plain_language": "Harga bergerak di antara dua sisi sampai ada penutupan di luarnya.",
+  "code_snippet": "# sample\n# range: belum ada plugin produksi",
+  "example_candles": [],
+  "found_count": null,
+  "status": "unchecked",
+  "source": "sample"
+}

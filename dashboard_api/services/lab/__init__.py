@@ -1,29 +1,52 @@
 """Lab backtest: registry plugin, unggah CSV, jalankan di thread."""
 import csv
+import importlib
 import io
 import json
+import pkgutil
 import threading
 import uuid
-from datetime import datetime, timezone
-from pathlib import Path
+from datetime import datetime, timedelta, timezone
 
 from dashboard_api.paths import DATA, ensure_dirs
 from dashboard_api.services import events
 from dashboard_api.services.lab.engine import kpis, run_backtest
-from strategies import reference_atr_breakout as reference
+import strategies
 
 RUNS = {}
 _lock = threading.Lock()
 
 
+def _plugins():
+    found = []
+    for info in pkgutil.iter_modules(strategies.__path__):
+        if info.name in {"common"} or info.name.startswith("_"):
+            continue
+        module = importlib.import_module(f"strategies.{info.name}")
+        if not hasattr(module, "id") or not hasattr(module, "detect"):
+            continue
+        found.append(module)
+    return found
+
+
+def _plugin(strategy_id):
+    for module in _plugins():
+        if module.id == strategy_id:
+            return module
+    raise KeyError(strategy_id)
+
+
 def discover():
-    return [{
-        "id": reference.id,
-        "kind": reference.kind,
-        "param_schema": reference.param_schema,
-        "source": "sample",
-        "note": "Implementasi referensi. Bukan detektor produksi.",
-    }]
+    rows = []
+    for module in _plugins():
+        rows.append({
+            "id": module.id,
+            "kind": getattr(module, "kind", "detector"),
+            "param_schema": getattr(module, "param_schema", {}),
+            "source": getattr(module, "source", "sample"),
+            "note": getattr(module, "note", ""),
+        })
+    return rows
 
 
 def _runs_dir():
@@ -40,6 +63,7 @@ def list_runs():
             doc = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             continue
+        curve = doc.get("equity_curve") if isinstance(doc.get("equity_curve"), list) else []
         rows.append({
             "id": doc.get("id"),
             "strategy": doc.get("strategy"),
@@ -48,6 +72,7 @@ def list_runs():
             "created_at": doc.get("created_at"),
             "kpis": doc.get("kpis"),
             "source": doc.get("source"),
+            "equity_curve": [{"equity": point.get("equity")} for point in curve[-32:] if isinstance(point, dict)],
         })
     return rows
 
@@ -116,22 +141,75 @@ def save_rows(text):
     return rows
 
 
-def start_run(symbol, timeframe, params, spec, profile):
-    bars = _load_csv(symbol, timeframe)
-    if not bars:
+def _load_mt5(symbol, timeframe, date_from, date_to):
+    try:
+        import MetaTrader5 as mt5
+    except Exception:
+        return []
+    tf = {"M1": mt5.TIMEFRAME_M1, "M5": mt5.TIMEFRAME_M5, "M15": mt5.TIMEFRAME_M15}.get(timeframe)
+    if tf is None or not mt5.initialize():
+        return []
+    try:
+        start = datetime.fromisoformat(date_from) if date_from else datetime.now(timezone.utc) - timedelta(days=30)
+        end = datetime.fromisoformat(date_to) if date_to else datetime.now(timezone.utc)
+        rates = mt5.copy_rates_range(symbol, tf, start, end)
+    except Exception:
+        rates = None
+    finally:
+        mt5.shutdown()
+    if rates is None:
+        return []
+    rows = []
+    for bar in rates:
+        rows.append({
+            "time": datetime.fromtimestamp(int(bar["time"]), timezone.utc).isoformat(),
+            "open": float(bar["open"]),
+            "high": float(bar["high"]),
+            "low": float(bar["low"]),
+            "close": float(bar["close"]),
+            "volume": float(bar["tick_volume"]),
+        })
+    return rows
+
+
+def _filter_dates(bars, date_from, date_to):
+    if not date_from and not date_to:
+        return bars
+    kept = []
+    for bar in bars:
+        stamp = str(bar.get("time") or "")
+        if date_from and stamp < date_from:
+            continue
+        if date_to and stamp > date_to:
+            continue
+        kept.append(bar)
+    return kept
+
+
+def start_run(symbol, timeframe, params, spec, profile, strategy_id="reference_atr_breakout", date_from="", date_to=""):
+    module = _plugin(strategy_id)
+    bars = _filter_dates(_load_mt5(symbol, timeframe, date_from, date_to), date_from, date_to)
+    data_source = "mt5"
+    if len(bars) < 30:
+        bars = _filter_dates(_load_csv(symbol, timeframe), date_from, date_to)
+        data_source = "csv"
+    if len(bars) < 30:
         raise FileNotFoundError("Tidak ada CSV history untuk simbol ini")
     run_id = uuid.uuid4().hex[:12]
     doc = {
         "id": run_id,
-        "strategy": reference.id,
+        "strategy": module.id,
         "symbol": symbol,
         "timeframe": timeframe,
         "status": "running",
         "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
         "params": params,
         "source": "real",
-        "kind": reference.kind,
+        "data_source": data_source,
+        "kind": getattr(module, "kind", "detector"),
         "progress": 0,
+        "date_from": date_from,
+        "date_to": date_to,
     }
     path = _runs_dir() / f"{run_id}.json"
     path.write_text(json.dumps(doc), encoding="utf-8")
@@ -151,7 +229,7 @@ def start_run(symbol, timeframe, params, spec, profile):
             })
             result = run_backtest(
                 bars,
-                reference.detect,
+                module.detect,
                 params,
                 spec,
                 float(profile.get("virtual_capital_usd") or profile.get("equity") or 95),

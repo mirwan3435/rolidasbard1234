@@ -103,6 +103,35 @@ def test_research_rejects_local_url():
         assert "SMC" in pasted.json()["concepts"]
 
 
+def test_scope_params_stay_bounded_and_signal_rejects_extra():
+    from datetime import datetime, timedelta, timezone
+    from brain.signal import validate_signal
+    now = datetime.now(timezone.utc)
+    raw = {
+        "id": "a", "ts": now.isoformat(), "symbol": "XAUUSD", "broker_symbol": "XAUUSDm",
+        "direction": "buy", "strategy": "smc", "mode": "scalp", "tf_entry": "M5", "tf_bias": "H1",
+        "order_type": "market", "entry": 100.0, "sl": 99.0, "tp": 102.0, "rr": 2.0, "atr": 1.0,
+        "spread_at_signal": 0.1, "tags": [], "score_components": {}, "score": 80,
+        "valid_until": (now + timedelta(minutes=5)).isoformat(), "invalidation": "zona batal",
+        "source": "sample",
+    }
+    assert validate_signal(raw)["ok"] is True
+    raw["lot"] = 1
+    assert validate_signal(raw)["ok"] is False
+    with TestClient(app) as client:
+        denied = client.put(
+            "/api/agents/SCOPE",
+            json={"enabled": True, "model": "x", "temperature": 0.2, "max_tokens": 100, "timeout_sec": 10, "system_prompt": "x", "output_schema": {}},
+            headers=ORIGIN,
+        )
+        assert denied.status_code == 403
+        saved = client.put("/api/agents/SCOPE/params", json={"params": {"min_score": 82}}, headers=ORIGIN)
+        assert saved.status_code == 200
+        assert saved.json()["params"]["min_score"] == 82
+        loose = client.put("/api/agents/SCOPE/params", json={"params": {"min_score": 10}}, headers=ORIGIN)
+        assert loose.status_code == 422
+
+
 def test_knowledge_feedback_and_budget(tmp_path, monkeypatch):
     with TestClient(app) as client:
         saved = client.post("/api/knowledge/cards/bos/verdict", json={"verdict": "ok", "note": "cocok"}, headers=ORIGIN)

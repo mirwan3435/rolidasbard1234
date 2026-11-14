@@ -22,6 +22,16 @@ SPECS = {
 
 READONLY = {"RISK", "EXEC"}
 ORDER = list(SPECS)
+PARAM_BOUNDS = {
+    "min_score": (50, 95),
+    "max_tick_age_sec": (1, 120),
+    "news_blackout_min": (0, 120),
+    "min_trades_valid": (30, 500),
+    "trail_atr_mult": (0.2, 3.0),
+    "max_heat_pct": (1, 5),
+    "stale_sec": (5, 300),
+}
+INT_PARAMS = {"min_score", "max_tick_age_sec", "news_blackout_min", "min_trades_valid", "stale_sec"}
 
 
 def _now():

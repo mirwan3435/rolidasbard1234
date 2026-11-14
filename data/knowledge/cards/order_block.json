@@ -1,0 +1,11 @@
+{
+  "id": "order_block",
+  "title": "Order block",
+  "category": "price_action",
+  "plain_language": "Candle terakhir sebelum perpindahan yang kemudian diuji kembali.",
+  "code_snippet": "# sample\n# order_block: belum ada plugin produksi",
+  "example_candles": [],
+  "found_count": null,
+  "status": "unchecked",
+  "source": "sample"
+}

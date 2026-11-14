@@ -47,14 +47,36 @@ def ensure_cards():
         path.write_text(json.dumps(doc, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
+_CANDLE = [
+    {"o": 10, "h": 11, "l": 9.6, "c": 10.8},
+    {"o": 10.8, "h": 11.4, "l": 10.5, "c": 11.2},
+    {"o": 11.2, "h": 11.3, "l": 10.4, "c": 10.6},
+    {"o": 10.6, "h": 10.9, "l": 10.2, "c": 10.3},
+    {"o": 10.3, "h": 11.6, "l": 10.1, "c": 11.4},
+    {"o": 11.4, "h": 11.8, "l": 11.1, "c": 11.6},
+]
+
+
 def cards():
     ensure_cards()
+    from strategies.common import snippet_for
     rows = []
     for path in sorted(_cards_dir().glob("*.json")):
         try:
-            rows.append(json.loads(path.read_text(encoding="utf-8")))
+            row = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             continue
+        if not row.get("example_candles"):
+            row["example_candles"] = _CANDLE
+        code = snippet_for(row.get("id") or "")
+        if code:
+            row["code_snippet"] = code
+            row["code_origin"] = "real"
+        else:
+            row["code_origin"] = "sample"
+        if row.get("found_count") is None:
+            row["source"] = "sample"
+        rows.append(row)
     return rows
 
 

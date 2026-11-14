@@ -146,6 +146,33 @@ def _web():
     return _card("web", "Akses web riset", "connected", sock_host, "orbit")
 
 
+def send_telegram_test():
+    """Kirim satu pesan tes. Token tidak pernah masuk ke jawaban atau log."""
+    import json as _json
+    import urllib.request
+    from dashboard_api.services.env_io import read_values
+
+    values = read_values()
+    token = values.get("TELEGRAM_BOT_TOKEN") or ""
+    chat = values.get("TELEGRAM_CHAT_ID") or ""
+    if not token or not chat:
+        return {"ok": False, "status": "not_configured", "message": "Token atau chat belum diisi."}
+    body = _json.dumps({"chat_id": chat, "text": "JARVIS: tes notifikasi. Ini bukan sinyal trading."}).encode()
+    request = urllib.request.Request(
+        f"https://api.telegram.org/bot{token}/sendMessage",
+        data=body,
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=5) as response:
+            payload = _json.loads(response.read().decode("utf-8", "replace"))
+    except Exception:
+        return {"ok": False, "status": "disconnected", "message": "Telegram tidak merespons."}
+    if not payload.get("ok"):
+        return {"ok": False, "status": "disconnected", "message": "Telegram menolak pesan tes."}
+    return {"ok": True, "status": "connected", "message": "Pesan tes terkirim."}
+
+
 def all_cards(force=False):
     now = time.time()
     if not force and _cache["payload"] and now - _cache["ts"] < 10:

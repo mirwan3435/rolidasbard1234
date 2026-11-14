@@ -1,0 +1,11 @@
+{
+  "id": "bos",
+  "title": "BOS",
+  "category": "structure",
+  "plain_language": "Break of structure: penutupan melewati swing searah bias.",
+  "code_snippet": "# sample\n# bos: belum ada plugin produksi",
+  "example_candles": [],
+  "found_count": null,
+  "status": "unchecked",
+  "source": "sample"
+}

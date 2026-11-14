@@ -1,0 +1,11 @@
+{
+  "id": "orderflow_proxy",
+  "title": "Order-flow proxy",
+  "category": "flow",
+  "plain_language": "Delta tick dan volume hanya konteks, bukan sinyal entry.",
+  "code_snippet": "# sample\n# orderflow_proxy: belum ada plugin produksi",
+  "example_candles": [],
+  "found_count": null,
+  "status": "unchecked",
+  "source": "sample"
+}

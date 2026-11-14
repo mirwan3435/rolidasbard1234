@@ -35,5 +35,7 @@ data/research/
 data/knowledge/feedback.jsonl
 data/costs.jsonl
 data/history/
+data/paper_intents/
+data/posmgr/
 data/journal.db
 data/calendar.csv

@@ -1,15 +1,20 @@
+function uiLang() {
+  return localStorage.getItem("dashboard-lang") === "en" ? "en" : "id";
+}
+
 export function ageLabel(sec?: number | null) {
-  if (sec == null) return "belum ada";
-  if (sec < 5) return "baru saja";
-  if (sec < 60) return `${Math.round(sec)} dtk`;
-  return `${Math.round(sec / 60)} mnt`;
+  const en = uiLang() === "en";
+  if (sec == null) return en ? "none" : "belum ada";
+  if (sec < 5) return en ? "just now" : "baru saja";
+  if (sec < 60) return `${Math.round(sec)} ${en ? "s" : "dtk"}`;
+  return `${Math.round(sec / 60)} ${en ? "m" : "mnt"}`;
 }
 
 export function fmtTime(iso?: string | null, timeZone = "Asia/Makassar") {
   if (!iso) return "—";
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
-  return new Intl.DateTimeFormat("id-ID", {
+  return new Intl.DateTimeFormat(uiLang() === "en" ? "en-US" : "id-ID", {
     timeZone,
     day: "2-digit",
     month: "short",
@@ -21,17 +26,17 @@ export function fmtTime(iso?: string | null, timeZone = "Asia/Makassar") {
 
 export function money(value?: number | null) {
   if (value == null || Number.isNaN(value)) return "—";
-  return value.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return value.toLocaleString(uiLang() === "en" ? "en-US" : "id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 export function statusLabel(status?: string) {
   const map: Record<string, string> = {
     ok: "ok",
-    warn: "waspada",
+    warn: uiLang() === "en" ? "watch" : "waspada",
     error: "error",
-    running: "jalan",
-    idle: "diam",
-    disabled: "mati",
+    running: uiLang() === "en" ? "running" : "jalan",
+    idle: uiLang() === "en" ? "idle" : "diam",
+    disabled: uiLang() === "en" ? "off" : "mati",
   };
   return map[status || ""] || status || "—";
 }

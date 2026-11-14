@@ -499,8 +499,19 @@ def build_status(symbol_filter=""):
         "symbols": symbol_rows,
         "corrupt_lines": events.corrupt_total(),
         "flowing": flow,
+        "round": _count_today({"signal", "heartbeat", "decision", "handoff"}),
+        "decisions_today": _count_today({"decision", "veto"}),
         "updated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
     }
+
+
+def _count_today(types):
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    try:
+        rows = events.query_events(limit=500)
+    except Exception:
+        return 0
+    return sum(1 for row in rows if str(row.get("ts") or "").startswith(today) and row.get("type") in types)
 
 
 def _commission_confirmed():

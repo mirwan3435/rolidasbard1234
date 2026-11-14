@@ -45,7 +45,7 @@ export function PaperPage() {
   });
   const data = query.data;
   if (query.isLoading) return <div className="skeleton h-64" />;
-  if (!data) return <p>Jurnal paper belum ada.</p>;
+  if (!data) return <p>{t("paper.missing")}</p>;
 
   function exportCsv() {
     const header = ["waktu", "simbol", "arah", "entry", "exit", "lot", "hasil_usd", "spread", "komisi", "r", "alasan", "skor_scope"];
@@ -60,19 +60,19 @@ export function PaperPage() {
         <h2 className="font-semibold">{t("promotion.title")}</h2>
         <ul className="mt-2 text-sm">
           {(ladder.data?.stages || []).map((stage) => (
-            <li key={stage.id}>{stage.label}: {stage.passed ? "lolos" : "belum"} {stage.locked ? `· ${t("promotion.locked")}` : ""} {stage.note || ""}</li>
+            <li key={stage.id}>{stage.label}: {stage.passed ? t("promotion.pass") : t("promotion.fail")} {stage.locked ? `· ${t("promotion.locked")}` : ""} {stage.note || ""}</li>
           ))}
         </ul>
       </section>
       <div className="grid grid-cols-4 gap-3">
-        <Stat title="Jumlah trade" value={String(data.trade_count)} />
-        <Stat title="Win rate" value={`${data.win_rate.toFixed(1)}%`} />
-        <Stat title="Rata-rata R" value={data.avg_r.toFixed(2)} />
-        <Stat title="Drawdown maks" value={`${data.max_drawdown_pct.toFixed(2)}%`} />
+        <Stat title={t("paper.trades")} value={String(data.trade_count)} />
+        <Stat title={t("paper.win")} value={`${data.win_rate.toFixed(1)}%`} />
+        <Stat title={t("paper.avgR")} value={data.avg_r.toFixed(2)} />
+        <Stat title={t("paper.dd")} value={`${data.max_drawdown_pct.toFixed(2)}%`} />
       </div>
       <section className="card p-3 h-72">
-        <h2 className="font-semibold mb-2">Equity virtual</h2>
-        {data.equity_curve.length === 0 ? <p className="text-muted">Belum ada kurva.</p> : (
+        <h2 className="font-semibold mb-2">{t("paper.equity")}</h2>
+        {data.equity_curve.length === 0 ? <p className="text-muted">{t("paper.emptyCurve")}</p> : (
           <ResponsiveContainer width="100%" height="85%">
             <LineChart data={data.equity_curve}>
               <CartesianGrid stroke="var(--line)" />
@@ -86,13 +86,13 @@ export function PaperPage() {
       </section>
       <section className="card p-3 overflow-auto">
         <div className="flex justify-between mb-2">
-          <h2 className="font-semibold">Jurnal</h2>
-          <button className="btn" onClick={exportCsv}>Ekspor CSV</button>
+          <h2 className="font-semibold">{t("paper.journal")}</h2>
+          <button className="btn" onClick={exportCsv}>{t("paper.export")}</button>
         </div>
         <table className="table">
-          <thead><tr><th>Waktu</th><th>Simbol</th><th>Arah</th><th>Hasil</th><th>Spread</th><th>Komisi</th><th>R</th><th>Alasan</th><th>Skor SCOPE</th></tr></thead>
+          <thead><tr><th>{t("common.time")}</th><th>{t("common.symbol")}</th><th>{t("common.direction")}</th><th>{t("common.result")}</th><th>{t("paper.spread")}</th><th>{t("paper.commission")}</th><th>R</th><th>{t("common.reason")}</th><th>{t("paper.scope")}</th></tr></thead>
           <tbody>
-            {data.journal.length === 0 && <tr><td colSpan={9}>Jurnal kosong.</td></tr>}
+            {data.journal.length === 0 && <tr><td colSpan={9}>{t("paper.emptyJournal")}</td></tr>}
             {data.journal.map((row) => (
               <tr key={row.id}>
                 <td>{fmtTime(row.closed_at, settings.data?.timezone)}</td>
