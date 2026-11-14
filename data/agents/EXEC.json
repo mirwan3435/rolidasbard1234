@@ -1,0 +1,25 @@
+{
+  "id": "EXEC",
+  "name": "EXEC",
+  "label": "Exec",
+  "tier": "A",
+  "llm": false,
+  "color": "#59f08b",
+  "enabled": true,
+  "model": "",
+  "temperature": 0.2,
+  "max_tokens": 600,
+  "timeout_sec": 30,
+  "system_prompt": "",
+  "output_schema": {},
+  "skill": {
+    "summary": "Kirim order paper/demo. Tanpa LLM.",
+    "prompt": "",
+    "params": {},
+    "output_schema_ref": ""
+  },
+  "limits": {},
+  "version": 1,
+  "updated_at": "2026-11-14T14:07:01.082Z",
+  "versions": []
+}

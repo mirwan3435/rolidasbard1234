@@ -1,0 +1,25 @@
+{
+  "id": "JOURNAL",
+  "name": "JOURNAL",
+  "label": "Journal",
+  "tier": "B",
+  "llm": false,
+  "color": "#94a3b8",
+  "enabled": true,
+  "model": "",
+  "temperature": 0.2,
+  "max_tokens": 600,
+  "timeout_sec": 30,
+  "system_prompt": "",
+  "output_schema": {},
+  "skill": {
+    "summary": "Catatan keputusan lengkap.",
+    "prompt": "",
+    "params": {},
+    "output_schema_ref": ""
+  },
+  "limits": {},
+  "version": 1,
+  "updated_at": "2026-11-14T14:07:01.098Z",
+  "versions": []
+}

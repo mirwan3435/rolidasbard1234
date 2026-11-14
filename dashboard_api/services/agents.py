@@ -9,6 +9,7 @@ EDITABLE = {"DEBATE", "CORE", "WHALES"}
 LOCKED = {
     "RISK": "RISK deterministik dan fail-closed. Prompt AI tidak boleh mengubah keputusannya.",
     "SCOPE": "SCOPE hitungan murni (order block, FVG, likuiditas, BOS/CHOCH, skor 0-100). Bukan probabilitas profit dan bukan prompt AI.",
+    "EXEC": "EXEC tidak memakai LLM dan tidak punya prompt. Dashboard tidak mengirim order.",
 }
 VARIABLES = ["{symbol}", "{zones}", "{dxy_context}", "{whales}", "{debate}", "{risk_profile}", "{capital}"]
 
@@ -73,8 +74,24 @@ def _snapshot(doc):
 
 
 def read_agent(name: str):
+    from dashboard_api.services.agent_registry import SPECS
     if name in LOCKED:
-        return {"name": name, "locked": True, "reason": LOCKED[name], "editable": False}
+        spec = SPECS[name]
+        return {
+            "name": name,
+            "locked": True,
+            "reason": LOCKED[name],
+            "editable": False,
+            "label": spec["label"],
+            "tier": spec["tier"],
+            "llm": False,
+            "color": spec["color"],
+            "params": dict(spec["params"]),
+            "params_editable": name == "SCOPE",
+            "skill": {"summary": spec["summary"], "prompt": "", "params": dict(spec["params"])},
+        }
+    if name in SPECS and name not in EDITABLE:
+        return _read_param_agent(name)
     if name not in EDITABLE:
         raise KeyError(name)
     ensure_dirs()
@@ -180,12 +197,55 @@ def preset_text(name: str, preset: str):
     return PRESETS[name][preset]
 
 
+def _read_param_agent(name: str):
+    from dashboard_api.services.agent_registry import SPECS, path_for
+    spec = SPECS[name]
+    path = path_for(name)
+    params = dict(spec["params"])
+    if path.exists():
+        try:
+            doc = json.loads(path.read_text(encoding="utf-8"))
+            stored = (doc.get("skill") or {}).get("params")
+            if isinstance(stored, dict):
+                params.update(stored)
+        except (OSError, json.JSONDecodeError):
+            pass
+    return {
+        "name": name,
+        "locked": False,
+        "editable": True,
+        "prompt_locked": True,
+        "label": spec["label"],
+        "tier": spec["tier"],
+        "llm": False,
+        "color": spec["color"],
+        "enabled": True,
+        "model": "",
+        "temperature": 0,
+        "max_tokens": 0,
+        "timeout_sec": 30,
+        "system_prompt": "",
+        "output_schema": {},
+        "params": params,
+        "params_editable": True,
+        "skill": {"summary": spec["summary"], "prompt": "", "params": params},
+        "versions": [],
+        "variables": [],
+        "presets": [],
+        "model_note": "Agen ini bukan LLM. Hanya parameter angka yang boleh diubah.",
+    }
+
+
 def list_agents():
+    from dashboard_api.services.agent_registry import SPECS
     rows = []
-    for name in ("WHALES", "DEBATE", "CORE", "SCOPE", "RISK"):
+    for name in SPECS:
         if name in LOCKED:
-            rows.append({"name": name, "locked": True, "reason": LOCKED[name]})
-        else:
+            rows.append({"name": name, "locked": True, "reason": LOCKED[name], "tier": SPECS[name]["tier"], "llm": False, "color": SPECS[name]["color"], "label": SPECS[name]["label"]})
+        elif name in EDITABLE:
             doc = read_agent(name)
-            rows.append({"name": name, "locked": False, "enabled": doc["enabled"], "model": doc["model"]})
+            rows.append({"name": name, "locked": False, "enabled": doc["enabled"], "model": doc["model"], "tier": "A", "llm": True, "color": SPECS[name]["color"], "label": SPECS[name]["label"]})
+        else:
+            doc = _read_param_agent(name)
+            rows.append({"name": name, "locked": False, "enabled": True, "model": "", "tier": doc["tier"], "llm": False, "color": doc["color"], "label": doc["label"]})
     return rows

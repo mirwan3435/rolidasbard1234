@@ -30,3 +30,10 @@ data/paper.json
 dashboard_ui/node_modules/
 dashboard_ui/dist/
 .pytest_dashboard/
+data/lab/
+data/research/
+data/knowledge/feedback.jsonl
+data/costs.jsonl
+data/history/
+data/journal.db
+data/calendar.csv

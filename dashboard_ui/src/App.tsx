@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { bootstrap } from "./api/client";
 import { Layout } from "./components/Layout";
@@ -11,7 +11,15 @@ import { RiskPage } from "./pages/Risk";
 import { SettingsPage } from "./pages/Settings";
 import { SkillsPage } from "./pages/Skills";
 import { SymbolsPage } from "./pages/Symbols";
+import { Spinner } from "./components/ui/Panel";
 import { WorkflowPage } from "./pages/Workflow";
+const LabPage = lazy(() => import("./pages/Lab"));
+const ResearchPage = lazy(() => import("./pages/Research"));
+const KnowledgePage = lazy(() => import("./pages/Knowledge"));
+const RoomPage = lazy(() => import("./pages/Room"));
+const DecisionsPage = lazy(() => import("./pages/Decisions"));
+const CostsPage = lazy(() => import("./pages/Costs"));
+const MachinePage = lazy(() => import("./pages/Machine"));
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -62,6 +70,13 @@ export default function App() {
         <Route path="/log" element={<LogPage />} />
         <Route path="/kesehatan" element={<HealthPage />} />
         <Route path="/pengaturan" element={<SettingsPage />} />
+        <Route path="/lab" element={<Suspense fallback={<Spinner />}><LabPage /></Suspense>} />
+        <Route path="/riset" element={<Suspense fallback={<Spinner />}><ResearchPage /></Suspense>} />
+        <Route path="/kennisbank" element={<Suspense fallback={<Spinner />}><KnowledgePage /></Suspense>} />
+        <Route path="/agentkamer" element={<Suspense fallback={<Spinner />}><RoomPage /></Suspense>} />
+        <Route path="/keputusan" element={<Suspense fallback={<Spinner />}><DecisionsPage /></Suspense>} />
+        <Route path="/biaya" element={<Suspense fallback={<Spinner />}><CostsPage /></Suspense>} />
+        <Route path="/mesin" element={<Suspense fallback={<Spinner />}><MachinePage /></Suspense>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

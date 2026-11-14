@@ -1,0 +1,27 @@
+{
+  "id": "SCOPE",
+  "name": "SCOPE",
+  "label": "Scope",
+  "tier": "A",
+  "llm": false,
+  "color": "#22d3ee",
+  "enabled": true,
+  "model": "",
+  "temperature": 0.2,
+  "max_tokens": 600,
+  "timeout_sec": 30,
+  "system_prompt": "",
+  "output_schema": {},
+  "skill": {
+    "summary": "Detektor strategi. Skor zona 0-100, bukan probabilitas profit.",
+    "prompt": "",
+    "params": {
+      "min_score": 80
+    },
+    "output_schema_ref": ""
+  },
+  "limits": {},
+  "version": 1,
+  "updated_at": "2026-11-14T14:07:01.048Z",
+  "versions": []
+}

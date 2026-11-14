@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { api } from "../api/client";
+import { useI18n } from "../i18n";
 
 const schema = z.object({
   theme: z.enum(["dark", "light"]),
@@ -9,11 +10,14 @@ const schema = z.object({
   refresh_ms: z.number().int().min(500).max(30000),
   log_retention_days: z.number().int().min(1).max(90),
   token_usd_per_million: z.number().min(0).max(100),
+  language: z.enum(["id", "en"]).default("id"),
+  app_title: z.string().min(3).max(80).default("JARVIS // TRADE-BREIN"),
 });
 
 type Settings = z.infer<typeof schema>;
 
 export function SettingsPage() {
+  const { t, setLang } = useI18n();
   const client = useQueryClient();
   const query = useQuery({ queryKey: ["settings"], queryFn: () => api<Settings>("/api/settings") });
   const [draft, setDraft] = useState<Settings | null>(null);
@@ -28,12 +32,22 @@ export function SettingsPage() {
       return;
     }
     await api("/api/settings", { method: "PUT", body: JSON.stringify(parsed.data) });
-    setMessage("Pengaturan tersimpan.");
+    setLang(parsed.data.language);
+    setMessage(t("settings.saved"));
     client.invalidateQueries({ queryKey: ["settings"] });
   }
 
   return (
     <div className="card p-4 max-w-xl space-y-3">
+      <label>{t("settings.language")}
+        <select className="field" value={draft.language || "id"} onChange={(e) => { const language = e.target.value as Settings["language"]; setDraft({ ...draft, language }); setLang(language); }}>
+          <option value="id">Bahasa Indonesia</option>
+          <option value="en">English</option>
+        </select>
+      </label>
+      <label>{t("settings.title")}
+        <input className="field" value={draft.app_title || "JARVIS // TRADE-BREIN"} onChange={(e) => setDraft({ ...draft, app_title: e.target.value })} />
+      </label>
       <label>Tema
         <select className="field" value={draft.theme} onChange={(e) => setDraft({ ...draft, theme: e.target.value as Settings["theme"] })}>
           <option value="dark">Gelap</option>

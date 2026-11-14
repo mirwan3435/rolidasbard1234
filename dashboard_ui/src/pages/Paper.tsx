@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { api } from "../api/client";
+import { useI18n } from "../i18n";
 import { useSettings } from "../components/Layout";
 import { download, fmtTime, money } from "../lib/format";
 
@@ -31,7 +32,12 @@ type Stats = {
 };
 
 export function PaperPage() {
+  const { t } = useI18n();
   const settings = useSettings();
+  const ladder = useQuery({
+    queryKey: ["promotion"],
+    queryFn: () => api<{ stages: { id: string; label: string; passed: boolean; locked: boolean; note?: string }[]; source: string }>("/api/promotion"),
+  });
   const query = useQuery({
     queryKey: ["paper"],
     queryFn: () => api<Stats>("/api/paper/journal"),
@@ -50,6 +56,14 @@ export function PaperPage() {
   return (
     <div className="space-y-4">
       <div className="banner warn">{data.disclaimer}</div>
+      <section className="card p-3">
+        <h2 className="font-semibold">{t("promotion.title")}</h2>
+        <ul className="mt-2 text-sm">
+          {(ladder.data?.stages || []).map((stage) => (
+            <li key={stage.id}>{stage.label}: {stage.passed ? "lolos" : "belum"} {stage.locked ? `· ${t("promotion.locked")}` : ""} {stage.note || ""}</li>
+          ))}
+        </ul>
+      </section>
       <div className="grid grid-cols-4 gap-3">
         <Stat title="Jumlah trade" value={String(data.trade_count)} />
         <Stat title="Win rate" value={`${data.win_rate.toFixed(1)}%`} />

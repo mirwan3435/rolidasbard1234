@@ -25,6 +25,7 @@ PROFILES = {
         "max_drawdown_pct": 15.0,
         "max_spread_to_stop_ratio": 0.15,
         "commission_per_lot_usd": 7.0,  # PLACEHOLDER: ganti sesuai komisi akun lu (round-turn per lot)
+        "commission_verified": False,
     },
     # Profil eksperimen dari blueprint awal: stop -8% dari harga, batas 10%
     "experiment_a": {
@@ -37,6 +38,25 @@ PROFILES = {
         "max_drawdown_pct": 15.0,
         "max_spread_to_stop_ratio": 0.15,
         "commission_per_lot_usd": 7.0,
+        "commission_verified": False,
+    },
+    # Modal uji 10 USD di akun cent. Bukan jaminan hasil. Batas keras di hard_limits.py.
+    "micro_10usd": {
+        "virtual_capital_usd": 10.0,
+        "account_type": "cent",
+        "risk_per_trade_pct": 2.0,
+        "skip_if_min_lot_risk_pct": 3.0,
+        "max_portfolio_heat_pct": 5.0,
+        "daily_loss_limit_pct": 5.0,
+        "kill_switch_drawdown_pct": 15.0,
+        "loss_streak_cooldown": {"3": 120, "5": "end_of_day"},
+        "min_margin_level_pct": 500,
+        "max_concurrent_positions": 2,
+        "max_open_per_symbol": 1,
+        "max_spread_atr_ratio": 0.15,
+        "news_blackout_min": 20,
+        "commission_per_lot_usd": 0.03,
+        "commission_verified": False,
     },
 }
 
@@ -74,7 +94,12 @@ def _overlay_from_json():
                 elif isinstance(value, (int, float)) and not isinstance(value, bool):
                     base[key] = float(value)
             elif isinstance(current, bool):
-                continue
+                if isinstance(value, bool):
+                    base[key] = value
+            elif isinstance(current, str) and isinstance(value, str):
+                base[key] = value
+            elif isinstance(current, dict) and isinstance(value, dict):
+                base[key] = value
             elif isinstance(current, int) and isinstance(value, (int, float)) and not isinstance(value, bool):
                 base[key] = int(value)
             elif isinstance(current, float) and isinstance(value, (int, float)) and not isinstance(value, bool):

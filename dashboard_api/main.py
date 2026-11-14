@@ -12,6 +12,8 @@ from dashboard_api.paths import ENV_FILE, ensure_dirs
 
 load_dotenv(ENV_FILE, override=False)
 from dashboard_api.routes import router
+from dashboard_api.routes_tools import router as tools_router
+from dashboard_api.services.agent_registry import ensure_files
 from dashboard_api.security import TOKEN, WRITE_METHODS, host_ok
 from dashboard_api.services import events
 
@@ -19,6 +21,7 @@ from dashboard_api.services import events
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     ensure_dirs()
+    ensure_files()
     events.set_loop(__import__("asyncio").get_running_loop())
     if os.environ.get("DASHBOARD_DISABLE_TAIL") != "1":
         events.start_background()
@@ -38,6 +41,7 @@ app.add_middleware(
     allow_headers=["Content-Type", "X-Dashboard-Token"],
 )
 app.include_router(router)
+app.include_router(tools_router)
 
 
 @app.middleware("http")

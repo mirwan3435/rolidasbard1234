@@ -35,6 +35,14 @@ DEFAULT_SETTINGS = {
     "refresh_ms": 2000,
     "log_retention_days": 14,
     "token_usd_per_million": 5.0,
+    "language": "id",
+    "app_title": "JARVIS // TRADE-BREIN",
+    "calendar_provider": "csv",
+    "net_check_url": "https://example.com",
+    "grok_price_in_per_million": None,
+    "grok_price_out_per_million": None,
+    "grok_daily_token_budget": 100000,
+    "grok_daily_usd_budget": None,
 }
 
 TIMEZONES = ["Asia/Makassar", "Asia/Jakarta", "UTC"]
@@ -122,6 +130,34 @@ def read_settings():
         rate = float(raw.get("token_usd_per_million", out["token_usd_per_million"]))
         if 0 <= rate <= 100:
             out["token_usd_per_million"] = rate
+    except (TypeError, ValueError):
+        pass
+    if raw.get("language") in {"id", "en"}:
+        out["language"] = raw["language"]
+    title = raw.get("app_title")
+    if isinstance(title, str) and 3 <= len(title.strip()) <= 80:
+        out["app_title"] = title.strip()
+    if raw.get("calendar_provider") in {"csv", "http"}:
+        out["calendar_provider"] = raw["calendar_provider"]
+    url = raw.get("net_check_url")
+    if isinstance(url, str) and url.startswith("https://") and len(url) < 200:
+        out["net_check_url"] = url
+    for key in ("grok_price_in_per_million", "grok_price_out_per_million", "grok_daily_usd_budget"):
+        value = raw.get(key, out[key])
+        if value is None or value == "":
+            out[key] = None
+        else:
+            try:
+                number = float(value)
+            except (TypeError, ValueError):
+                number = None
+            if number is not None and 0 <= number <= 100:
+                out[key] = number
+    try:
+        budget = int(raw.get("grok_daily_token_budget", out["grok_daily_token_budget"]))
+        from dashboard_api.hard_limits import GROK_TOKEN_BUDGET_MAX, GROK_TOKEN_BUDGET_MIN
+        if GROK_TOKEN_BUDGET_MIN <= budget <= GROK_TOKEN_BUDGET_MAX:
+            out["grok_daily_token_budget"] = budget
     except (TypeError, ValueError):
         pass
     return out

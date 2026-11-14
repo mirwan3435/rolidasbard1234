@@ -1,0 +1,74 @@
+{
+  "name": "WHALES",
+  "enabled": true,
+  "model": "",
+  "temperature": 0.3,
+  "max_tokens": 800,
+  "timeout_sec": 30,
+  "system_prompt": "Jelaskan jejak volume hanya sebagai konteks. Jangan mengeluarkan keputusan masuk.",
+  "output_schema": {
+    "type": "object",
+    "required": [
+      "stance",
+      "summary"
+    ],
+    "properties": {
+      "stance": {
+        "type": "string"
+      },
+      "summary": {
+        "type": "string"
+      },
+      "score": {
+        "type": "number"
+      }
+    }
+  },
+  "versions": [
+    {
+      "n": 1,
+      "ts": "2026-11-13T15:34:34.509Z",
+      "note": "bawaan",
+      "snapshot": {
+        "enabled": true,
+        "model": "",
+        "temperature": 0.3,
+        "max_tokens": 800,
+        "timeout_sec": 30,
+        "system_prompt": "Jelaskan jejak volume hanya sebagai konteks. Jangan mengeluarkan keputusan masuk.",
+        "output_schema": {
+          "type": "object",
+          "required": [
+            "stance",
+            "summary"
+          ],
+          "properties": {
+            "stance": {
+              "type": "string"
+            },
+            "summary": {
+              "type": "string"
+            },
+            "score": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "id": "WHALES",
+  "label": "Whales",
+  "tier": "A",
+  "llm": true,
+  "color": "#a78bfa",
+  "skill": {
+    "summary": "Konteks aliran besar. Bukan keputusan masuk.",
+    "prompt": "Jelaskan jejak volume hanya sebagai konteks. Jangan mengeluarkan keputusan masuk.",
+    "params": {},
+    "output_schema_ref": "verdict"
+  },
+  "limits": {},
+  "version": 1,
+  "updated_at": "2026-11-14T14:07:01.065Z"
+}

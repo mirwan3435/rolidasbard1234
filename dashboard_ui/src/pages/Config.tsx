@@ -17,7 +17,7 @@ type Profile = {
 
 type ConfigDoc = {
   virtual_capital: number;
-  active_profile: "standard" | "experiment_a";
+  active_profile: "standard" | "experiment_a" | "micro_10usd";
   commission_confirmed: boolean;
   profiles: { standard: Profile; experiment_a: Profile };
 };
@@ -35,7 +35,7 @@ const FIELDS: { key: keyof Profile; label: string; step?: string }[] = [
 
 const loose = z.object({
   virtual_capital: z.number().positive(),
-  active_profile: z.enum(["standard", "experiment_a"]),
+  active_profile: z.enum(["standard", "experiment_a", "micro_10usd"]),
   commission_confirmed: z.boolean(),
 });
 
@@ -119,6 +119,7 @@ export function ConfigPage() {
           <select className="field" value={draft.active_profile} onChange={(e) => setDraft({ ...draft, active_profile: e.target.value as ConfigDoc["active_profile"] })}>
             <option value="standard">standard</option>
             <option value="experiment_a">experiment_a</option>
+            <option value="micro_10usd">micro_10usd</option>
           </select>
         </label>
       </div>

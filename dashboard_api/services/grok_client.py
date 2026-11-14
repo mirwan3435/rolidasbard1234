@@ -87,7 +87,45 @@ def render_prompt(template: str, sample: dict):
     return text
 
 
+def parse_verdict(raw):
+    """Gagal parse = reject. score_adjust hanya boleh -10..0. Field ekstra ditolak."""
+    rejected = {"ok": False, "verdict": "reject", "parsed": None}
+    if isinstance(raw, str):
+        try:
+            raw = json.loads(raw)
+        except json.JSONDecodeError:
+            return rejected
+    if not isinstance(raw, dict):
+        return rejected
+    allowed = {"signal_id", "verdict", "score_adjust", "reasons", "risk_flags", "confidence"}
+    if set(raw) - allowed or not allowed <= set(raw):
+        return rejected
+    if raw["verdict"] not in {"accept", "reduce", "reject"}:
+        return rejected
+    adjust = raw["score_adjust"]
+    if isinstance(adjust, bool) or not isinstance(adjust, int) or not -10 <= adjust <= 0:
+        return rejected
+    reasons = raw["reasons"]
+    flags = raw["risk_flags"]
+    known = {"news", "low_liquidity", "htf_conflict", "overextended", "correlation", "spread", "other"}
+    if not isinstance(reasons, list) or len(reasons) > 5 or any(not isinstance(item, str) or len(item) > 200 for item in reasons):
+        return rejected
+    if not isinstance(flags, list) or len(flags) > 6 or any(item not in known for item in flags):
+        return rejected
+    confidence = raw["confidence"]
+    if isinstance(confidence, bool) or not isinstance(confidence, (int, float)) or not 0 <= float(confidence) <= 1:
+        return rejected
+    if not isinstance(raw["signal_id"], str) or not raw["signal_id"]:
+        return rejected
+    return {"ok": True, "verdict": raw["verdict"], "parsed": raw}
+
+
 async def test_prompt(model: str, temperature: float, max_tokens: int, timeout_sec: int, prompt: str, schema: dict):
+    from dashboard_api.services.costs import BudgetExceeded, budget_guard
+    try:
+        budget_guard()
+    except BudgetExceeded as exc:
+        return {"ok": False, "message": str(exc), "raw": "", "parsed": None, "tokens": 0}
     values = read_values()
     secret = values.get("XAI_API_KEY", "")
     if not secret:
@@ -153,6 +191,8 @@ async def test_prompt(model: str, temperature: float, max_tokens: int, timeout_s
     if isinstance(usage.get("total_tokens"), int):
         tokens = usage["total_tokens"]
     _remember(True, "Tes prompt selesai", tokens)
+    from dashboard_api.services.costs import record
+    record("CORE", model, int(usage.get("prompt_tokens") or 0), int(usage.get("completion_tokens") or tokens))
     return {
         "ok": parsed is not None and not missing,
         "message": "Terurai" if parsed is not None and not missing else "Respons mentah tidak sesuai skema",

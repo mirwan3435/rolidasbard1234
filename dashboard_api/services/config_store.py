@@ -6,17 +6,25 @@ from dashboard_api import hard_limits as limits
 from dashboard_api.paths import DATA, ensure_dirs
 from dashboard_api.services import events
 
-FIELDS = [
-    "risk_per_trade_pct",
-    "stop_pct_of_price",
-    "max_open_positions",
-    "max_total_risk_pct",
-    "max_margin_pct",
-    "daily_loss_limit_pct",
-    "max_drawdown_pct",
-    "max_spread_to_stop_ratio",
-    "commission_per_lot_usd",
-]
+FIELDS = limits.CLASSIC_FIELDS
+
+
+def _fields(name):
+    return limits.FIELDS_BY_PROFILE.get(name, FIELDS)
+
+
+def _cooldown_ok(value):
+    if not isinstance(value, dict):
+        return False
+    three = value.get("3")
+    five = value.get("5")
+    if isinstance(three, bool) or not isinstance(three, int):
+        return False
+    if three < 120 or three > 1440:
+        return False
+    if five != "end_of_day":
+        return False
+    return set(value) <= {"3", "5"}
 
 
 def config_path():
@@ -55,10 +63,23 @@ def _normalize(raw):
     incoming = raw.get("profiles") if isinstance(raw.get("profiles"), dict) else {}
     for name in limits.PROFILE_NAMES:
         patch = incoming.get(name) if isinstance(incoming.get(name), dict) else {}
-        for field in FIELDS:
+        for field in _fields(name):
             if field not in patch:
                 continue
             value = patch[field]
+            if field in limits.BOOL_FIELDS:
+                if isinstance(value, bool):
+                    base["profiles"][name][field] = value
+                continue
+            if field in limits.STRING_FIELDS:
+                if value in limits.STRING_FIELDS[field]:
+                    base["profiles"][name][field] = value
+                continue
+            if field in limits.DICT_FIELDS:
+                if _cooldown_ok(value):
+                    stored = {str(k): v for k, v in value.items()}
+                    base["profiles"][name][field] = {"3": int(stored["3"]), "5": "end_of_day"}
+                continue
             if field == "stop_pct_of_price" and value is None:
                 base["profiles"][name][field] = None
             elif isinstance(value, (int, float)) and not isinstance(value, bool):
@@ -78,7 +99,7 @@ def diff_config(old, new):
     if old.get("commission_confirmed") != new.get("commission_confirmed"):
         changes.append({"path": "commission_confirmed", "before": old.get("commission_confirmed"), "after": new.get("commission_confirmed")})
     for name in limits.PROFILE_NAMES:
-        for field in FIELDS:
+        for field in _fields(name):
             before = old["profiles"][name].get(field)
             after = new["profiles"][name].get(field)
             if before != after:
@@ -87,10 +108,22 @@ def diff_config(old, new):
 
 
 def _check_number(profile, field, value):
+    if field in limits.BOOL_FIELDS:
+        if not isinstance(value, bool):
+            return f"{profile}.{field} harus ya/tidak"
+        return None
+    if field in limits.STRING_FIELDS:
+        if value not in limits.STRING_FIELDS[field]:
+            return f"{profile}.{field} tidak dikenal"
+        return None
+    if field in limits.DICT_FIELDS:
+        if not _cooldown_ok(value):
+            return f"{profile}.{field} tidak boleh dilonggarkan (3 menit >= 120, 5 tetap end_of_day)"
+        return None
     if field == "stop_pct_of_price":
-        if profile == "standard":
+        if profile != "experiment_a":
             if value is not None:
-                return "Profil standard tidak memakai stop_pct_of_price (harus kosong)"
+                return "Hanya profil eksperimen yang memakai stop_pct_of_price"
             return None
         if value is None:
             return "Profil eksperimen wajib punya stop_pct_of_price"
@@ -113,7 +146,7 @@ def validate(config):
         errors.append("active_profile tidak dikenal")
     for name in limits.PROFILE_NAMES:
         profile = config["profiles"][name]
-        for field in FIELDS:
+        for field in _fields(name):
             message = _check_number(name, field, profile.get(field))
             if message:
                 errors.append(message)

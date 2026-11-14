@@ -93,6 +93,14 @@ Batas yang tidak bisa dilanggar UI ada di `dashboard_api/hard_limits.py` (misaln
 - **Komisi kuning:** `commission_per_lot_usd` masih 7.0. Isi nilai asli di Config lalu centang "Saya sudah cek komisi asli akun".
 - **Tes prompt nonaktif:** isi `XAI_API_KEY` dan nama model dari dokumentasi xAI. Dashboard tidak menebak nama model.
 
+## Keputusan upgrade JARVIS
+
+- Profil `micro_10usd` ditambah. `standard` dan `experiment_a` tidak dihapus. Angka risiko profil micro tidak bisa dinaikkan melewati nilai di konsep.
+- CSV Lab dikirim sebagai teks JSON, bukan multipart, supaya tidak menambah dependensi di luar `psutil`.
+- Riset tanpa kunci Grok memakai penanda kata. Hasilnya ditandai sebagai tagger keyword, bukan keluaran model.
+- Nama simbol di `data/symbols.json` tetap nama broker yang sudah ada. Nama kanonik ada di `KONSEP_TRADING_BOT.md`.
+- Tidak ada tombol live, order, atau reset kill-switch.
+
 ## Keamanan (BAGIAN 6)
 
 1. Bind `127.0.0.1` saja, CORS hanya origin Vite lokal.

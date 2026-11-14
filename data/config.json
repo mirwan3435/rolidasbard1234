@@ -12,7 +12,8 @@
       "daily_loss_limit_pct": 5.0,
       "max_drawdown_pct": 15.0,
       "max_spread_to_stop_ratio": 0.15,
-      "commission_per_lot_usd": 7.0
+      "commission_per_lot_usd": 7.0,
+      "commission_verified": false
     },
     "experiment_a": {
       "risk_per_trade_pct": 10.0,
@@ -23,7 +24,25 @@
       "daily_loss_limit_pct": 5.0,
       "max_drawdown_pct": 15.0,
       "max_spread_to_stop_ratio": 0.15,
-      "commission_per_lot_usd": 7.0
+      "commission_per_lot_usd": 7.0,
+      "commission_verified": false
+    },
+    "micro_10usd": {
+      "virtual_capital_usd": 10.0,
+      "account_type": "cent",
+      "risk_per_trade_pct": 2.0,
+      "skip_if_min_lot_risk_pct": 3.0,
+      "max_portfolio_heat_pct": 5.0,
+      "daily_loss_limit_pct": 5.0,
+      "kill_switch_drawdown_pct": 15.0,
+      "loss_streak_cooldown": {"3": 120, "5": "end_of_day"},
+      "min_margin_level_pct": 500,
+      "max_concurrent_positions": 2,
+      "max_open_per_symbol": 1,
+      "max_spread_atr_ratio": 0.15,
+      "news_blackout_min": 20,
+      "commission_per_lot_usd": 0.03,
+      "commission_verified": false
     }
   }
 }

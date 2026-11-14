@@ -41,6 +41,14 @@ class SettingsBody(BaseModel):
     refresh_ms: int = Field(ge=500, le=30000)
     log_retention_days: int = Field(ge=1, le=90)
     token_usd_per_million: float = Field(ge=0, le=100)
+    language: str = "id"
+    app_title: str = Field(default="JARVIS // TRADE-BREIN", max_length=80)
+    calendar_provider: str = "csv"
+    net_check_url: str = "https://example.com"
+    grok_price_in_per_million: float | None = None
+    grok_price_out_per_million: float | None = None
+    grok_daily_token_budget: int = Field(default=100000, ge=1000, le=2_000_000)
+    grok_daily_usd_budget: float | None = Field(default=None, ge=0, le=100)
 
 
 class ConfigBody(BaseModel):
@@ -217,6 +225,12 @@ def get_agents():
     return {"agents": agents.list_agents(), "variables": agents.VARIABLES}
 
 
+@router.get("/agents/status")
+def agents_status():
+    from dashboard_api.services.agentroom import state as room_state
+    return room_state()
+
+
 @router.get("/agents/{name}")
 def get_agent(name: str):
     try:
@@ -320,6 +334,10 @@ def put_settings(body: SettingsBody):
         raise HTTPException(422, "Tema tidak dikenal")
     if body.timezone not in state.TIMEZONES:
         raise HTTPException(422, "Zona waktu tidak dikenal")
+    if body.language not in {"id", "en"}:
+        raise HTTPException(422, "Bahasa tidak dikenal")
+    if body.calendar_provider not in {"csv", "http"}:
+        raise HTTPException(422, "Penyedia kalender tidak dikenal")
     return state.write_settings(body.model_dump())
 
 

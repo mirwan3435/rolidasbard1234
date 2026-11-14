@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
+import { useI18n } from "../i18n";
+import { StatusDot } from "../components/ui/Panel";
 
 type Slot = { slot: string; filled: boolean; last4: string; required: boolean };
 
@@ -10,11 +12,27 @@ const LABELS: Record<string, string> = {
   TELEGRAM_CHAT_ID: "Chat ID Telegram (opsional)",
 };
 
+type Connection = { id: string; label: string; status: string; detail: string; checked_at: string };
+
 export function KeysPage() {
+  const { t } = useI18n();
   const client = useQueryClient();
   const query = useQuery({ queryKey: ["keys"], queryFn: () => api<{ slots: Slot[] }>("/api/keys") });
+  const links = useQuery({ queryKey: ["connections"], queryFn: () => api<{ connections: Connection[] }>("/api/connections") });
   return (
     <div className="space-y-4 max-w-3xl">
+      <section className="card p-4">
+        <h2 className="font-semibold mb-2">{t("keys.connections")}</h2>
+        <div className="grid grid-cols-2 gap-2">
+          {(links.data?.connections || []).map((item) => (
+            <article key={item.id} className="card p-2">
+              <div className="flex items-center gap-2"><StatusDot status={item.status} /><strong>{item.label}</strong></div>
+              <p className="text-sm text-muted">{item.detail}</p>
+              <button className="btn mt-2" onClick={async () => { await api(`/api/connections/${item.id}/check`, { method: "POST" }); links.refetch(); }}>{t("keys.check")}</button>
+            </article>
+          ))}
+        </div>
+      </section>
       <p className="text-sm text-muted">Write-only. Nilai tersimpan tidak pernah dikirim balik ke browser, hanya status dan 4 karakter terakhir.</p>
       {(query.data?.slots || []).map((slot) => (
         <SlotCard key={slot.slot} slot={slot} onSaved={() => client.invalidateQueries({ queryKey: ["keys"] })} />

@@ -23,8 +23,14 @@ ROOT = Path(__file__).resolve().parent
 LOG_DIR = Path(os.environ.get("DASHBOARD_LOG_DIR", ROOT / "logs"))
 EVENT_FILE = LOG_DIR / "events.jsonl"
 
-AGENTS = {"DATA", "SCOPE", "WHALES", "DEBATE", "RISK", "EXEC", "CORE", "SYSTEM"}
-TYPES = {"status", "input", "output", "decision", "error", "heartbeat", "config_change"}
+AGENTS = {
+    "DATA", "SCOPE", "WHALES", "DEBATE", "RISK", "EXEC", "CORE", "SYSTEM",
+    "CONTEXT", "PROFILER", "POSMGR", "PORTFOLIO", "JOURNAL", "WATCHDOG",
+}
+TYPES = {
+    "status", "input", "output", "decision", "error", "heartbeat", "config_change",
+    "signal", "handoff", "order", "veto", "cost", "research", "lab",
+}
 LEVELS = {"debug", "info", "warn", "error"}
 
 
@@ -42,6 +48,7 @@ def emit_event(agent, type_, summary, symbol="", level="info", data=None, run_id
         "symbol": symbol or "",
         "level": level,
         "summary": str(summary)[:500],
+        "msg": str(summary)[:500],
         "data": data if isinstance(data, dict) else {},
         "run_id": run_id or "",
     }
@@ -50,3 +57,8 @@ def emit_event(agent, type_, summary, symbol="", level="info", data=None, run_id
     with EVENT_FILE.open("a", encoding="utf-8") as handle:
         handle.write(line + "\n")
     return event
+
+
+def emit(agent, type_, msg, data=None, level="info", symbol=""):
+    """Helper baru. `emit_event` tetap dipakai pemanggil lama."""
+    return emit_event(agent, type_, msg, symbol=symbol, level=level, data=data)

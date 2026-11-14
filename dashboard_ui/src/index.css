@@ -3,17 +3,29 @@
 @tailwind utilities;
 
 :root {
-  --bg: #0c1117;
-  --panel: #141c27;
-  --panel-2: #1b2636;
-  --text: #e7eef8;
-  --muted: #93a1b5;
-  --line: #2a384b;
-  --ok: #3dd68c;
-  --warn: #f0c14a;
-  --bad: #ff5c5c;
-  --run: #59a7ff;
-  --idle: #8b97a8;
+  --bg: #05070a;
+  --surface: #0a0e13;
+  --surface-2: #0f141b;
+  --panel: #0a0e13;
+  --panel-2: #0f141b;
+  --hairline: rgba(255, 255, 255, 0.07);
+  --border: #1b232d;
+  --text: #d7dee6;
+  --muted: #6b7785;
+  --faint: #3b4552;
+  --line: #1b232d;
+  --accent: #59f08b;
+  --ok: #59f08b;
+  --warn: #f5b942;
+  --danger: #ff5d6c;
+  --bad: #ff5d6c;
+  --info: #5aa9ff;
+  --run: #5aa9ff;
+  --idle: #6b7785;
+  --dur-fast: 180ms;
+  --dur-base: 320ms;
+  --dur-slow: 560ms;
+  --ease-out: cubic-bezier(.22, 1, .36, 1);
   color-scheme: dark;
 }
 
@@ -38,14 +50,16 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: "Segoe UI", sans-serif;
+  font-family: Inter, "Segoe UI", sans-serif;
+  background-image: linear-gradient(var(--hairline) 1px, transparent 1px), linear-gradient(90deg, var(--hairline) 1px, transparent 1px);
+  background-size: 48px 48px;
 }
 button, input, select, textarea { font: inherit; color: inherit; }
 button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
   outline: 2px solid var(--run);
   outline-offset: 2px;
 }
-code, .mono { font-family: Consolas, "Courier New", monospace; }
+code, .mono, .panel-title { font-family: "JetBrains Mono", Consolas, monospace; }
 
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
 .btn {
@@ -80,6 +94,29 @@ html.light .banner.warn { background: #fff1c2; color: #6a4b00; }
 html.light .node-card.bad { background: #ffdede; }
 .side-link { display: block; padding: 0.45rem 0.7rem; border-radius: 8px; color: var(--muted); text-decoration: none; }
 .side-link.active, .side-link:hover { background: var(--panel-2); color: var(--text); }
+.side-link.active { box-shadow: inset 2px 0 0 var(--accent); }
+.nav-label { margin: 14px 8px 4px; color: var(--faint); font-size: 10px; letter-spacing: 0.16em; }
+.panel { position: relative; border: 1px solid var(--border); background: var(--surface); }
+.panel-title { display: flex; justify-content: space-between; gap: 8px; padding: 8px 12px; color: var(--muted); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; border-bottom: 1px solid var(--hairline); }
+.panel-body { padding: 12px; }
+.dot { width: 8px; height: 8px; border-radius: 99px; display: inline-block; background: var(--idle); }
+.dot.ok { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+.dot.warn { background: var(--warn); }
+.dot.bad { background: var(--danger); }
+.dot.idle { background: var(--faint); }
+.spinner { display: inline-block; border-radius: 99px; border: 2px solid var(--border); border-top-color: var(--accent); animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.page-enter { animation: reveal var(--dur-base) var(--ease-out); }
+@keyframes reveal { from { opacity: 0; filter: blur(12px); } to { opacity: 1; filter: blur(0); } }
+.grok-idle { animation: breathe 3.2s ease-in-out infinite; }
+.grok-thinking .grok-dot { transform-origin: -8px 8px; animation: spin 1.4s linear infinite; }
+@keyframes breathe { 50% { opacity: 0.55; } }
+.pill { border: 1px solid var(--border); padding: 2px 8px; border-radius: 99px; display: inline-flex; gap: 6px; align-items: center; font-size: 12px; }
+.empty { color: var(--muted); }
+.ticker { overflow: hidden; white-space: nowrap; color: var(--muted); font-size: 12px; border-top: 1px solid var(--hairline); padding: 4px 12px; }
+@media (prefers-reduced-motion: reduce) {
+  .page-enter, .grok-idle, .grok-thinking .grok-dot, .spinner { animation: none; }
+}
 .react-flow { background: var(--bg) !important; }
 .react-flow__minimap { background: var(--panel) !important; }
 .react-flow__controls-button { background: var(--panel) !important; border-color: var(--line) !important; fill: var(--text) !important; }

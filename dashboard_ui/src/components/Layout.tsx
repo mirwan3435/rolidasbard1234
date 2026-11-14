@@ -1,19 +1,18 @@
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { NavLink, Outlet } from "react-router-dom";
-import { api } from "../api/client";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { api, openEvents } from "../api/client";
+import { useI18n } from "../i18n";
+import type { DictKey } from "../i18n/id";
 import { ageLabel } from "../lib/format";
+import { StatusDot } from "./ui/Panel";
 
-const LINKS = [
-  ["/", "Workflow"],
-  ["/simbol", "Simbol"],
-  ["/risk", "RISK"],
-  ["/paper", "Paper"],
-  ["/kunci", "API Key"],
-  ["/skill", "Skill"],
-  ["/config", "Config"],
-  ["/log", "Log"],
-  ["/kesehatan", "Kesehatan"],
-  ["/pengaturan", "Pengaturan"],
+const GROUPS: [DictKey, [string, DictKey][]][] = [
+  ["nav.overview", [["/", "nav.workflow"], ["/simbol", "nav.symbols"]]],
+  ["nav.brain", [["/skill", "nav.skills"], ["/agentkamer", "nav.room"], ["/keputusan", "nav.decisions"]]],
+  ["nav.money", [["/risk", "nav.risk"], ["/paper", "nav.paper"], ["/biaya", "nav.costs"], ["/config", "nav.config"]]],
+  ["nav.system", [["/log", "nav.log"], ["/kesehatan", "nav.health"], ["/mesin", "nav.machine"], ["/kunci", "nav.keys"], ["/pengaturan", "nav.settings"]]],
+  ["nav.tools", [["/lab", "nav.lab"], ["/riset", "nav.research"], ["/kennisbank", "nav.knowledge"]]],
 ];
 
 export type Status = {
@@ -61,11 +60,14 @@ export type SymbolRow = {
 export function useSettings() {
   return useQuery({
     queryKey: ["settings"],
-    queryFn: () => api<{ theme: "dark" | "light"; timezone: string; refresh_ms: number; log_retention_days: number; token_usd_per_million: number }>("/api/settings"),
+    queryFn: () => api<{ theme: "dark" | "light"; timezone: string; refresh_ms: number; log_retention_days: number; token_usd_per_million: number; app_title?: string; language?: "id" | "en" }>("/api/settings"),
   });
 }
 
 export function Layout() {
+  const { t } = useI18n();
+  const location = useLocation();
+  const [tick, setTick] = useState("");
   const settings = useSettings();
   const refresh = settings.data?.refresh_ms ?? 2000;
   const status = useQuery({
@@ -78,22 +80,47 @@ export function Layout() {
     queryFn: () => api<{ gitignore_missing: string[] }>("/api/meta"),
     refetchInterval: 10000,
   });
+  const agents = useQuery({
+    queryKey: ["agent-status"],
+    queryFn: () => api<{ agents: { id: string; state: string; color: string }[] }>("/api/agents/status"),
+    refetchInterval: refresh,
+  });
+  const costs = useQuery({
+    queryKey: ["costs"],
+    queryFn: () => api<{ tokens_today: number; token_budget: number }>("/api/costs"),
+    refetchInterval: refresh,
+  });
+  useEffect(() => {
+    const socket = openEvents((event) => {
+      const row = event as { agent?: string; summary?: string };
+      setTick(`${row.agent || ""} ${row.summary || ""}`.slice(0, 140));
+    });
+    return () => socket.close();
+  }, []);
   const theme = settings.data?.theme ?? "dark";
   if (typeof document !== "undefined") document.documentElement.classList.toggle("light", theme === "light");
   const snap = status.data;
+  const title = settings.data?.app_title || "JARVIS // TRADE-BREIN";
+  const used = costs.data?.tokens_today ?? 0;
+  const budget = costs.data?.token_budget || 1;
 
   return (
     <div className="h-full grid" style={{ gridTemplateColumns: "220px 1fr" }}>
       <aside className="border-r border-line p-3 overflow-auto" style={{ background: "var(--panel)" }}>
         <div className="px-2 py-2 mb-3">
           <div className="text-xs text-muted">PYTHON_AI_LAB</div>
-          <div className="font-semibold">5 Agent + Grok</div>
+          <div className="font-semibold">JARVIS</div>
         </div>
-        <nav className="space-y-1">
-          {LINKS.map(([to, label]) => (
-            <NavLink key={to} to={to} end={to === "/"} className={({ isActive }) => `side-link ${isActive ? "active" : ""}`}>
-              {label}
-            </NavLink>
+        <nav>
+          {GROUPS.map(([label, links]) => (
+            <div key={label}>
+              <div className="nav-label">{t(label)}</div>
+              {links.map(([to, key]) => (
+                <NavLink key={to} to={to} end={to === "/"} className={({ isActive }) => `side-link ${isActive ? "active" : ""}`}>
+                  {t(key)}
+                </NavLink>
+              ))}
+            </div>
           ))}
         </nav>
       </aside>
@@ -107,8 +134,15 @@ export function Layout() {
           <Pill label="MT5" value={snap ? (snap.mt5_connected ? "terhubung" : "tidak terhubung") : "…"} />
           <Pill label="Usia data" value={ageLabel(snap?.data_age_sec)} />
           <Pill label="Equity" value={snap ? snap.equity.toFixed(2) : "…"} />
-          <span className="text-xs text-muted ml-auto">Paper trading. Dashboard tidak mengirim order.</span>
+          <strong className="mono text-sm">{title}</strong>
+          <span className="pill"><StatusDot status="idle" />{t("shell.paper")}</span>
+          {(agents.data?.agents || []).slice(0, 6).map((agent) => (
+            <span key={agent.id} className="pill" title={agent.id}><StatusDot status={agent.state} />{agent.id}</span>
+          ))}
+          <span className="text-xs text-muted">{t("shell.budget")} {used}/{budget}</span>
+          <span className="text-xs text-muted ml-auto">{t("shell.noOrders")}</span>
         </header>
+        <div className="ticker">{tick || "—"}</div>
         {snap?.kill_switch.active && (
           <div className="banner bad">
             KILL-SWITCH AKTIF. {snap.kill_switch.reason || "Alasan tidak terbaca."} {snap.kill_switch.reset_hint}
@@ -137,7 +171,9 @@ export function Layout() {
           <div className="banner bad">Backend tidak terhubung. Jalankan <span className="mono">.\scripts\run_dashboard.ps1</span></div>
         )}
         <main className="flex-1 overflow-auto p-4">
-          <Outlet context={{ refresh }} />
+          <div key={location.pathname} className="page-enter">
+            <Outlet context={{ refresh }} />
+          </div>
         </main>
       </div>
     </div>
