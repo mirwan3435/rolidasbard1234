@@ -31,7 +31,7 @@ export function KeysPage() {
           {(links.data?.connections || []).map((item) => (
             <article key={item.id} className="card p-2">
               <div className="flex items-center gap-2">
-                <Emblem motif={item.motif || "led"} status={checking === item.id ? "checking" : item.status} />
+                <Emblem key={item.checked_at} size={40} state={checking === item.id ? "working" : item.status === "connected" ? "success" : item.status === "disconnected" || item.status === "error" ? "error" : "idle"} />
                 <StatusDot status={item.status} />
                 <strong>{item.label}</strong>
               </div>

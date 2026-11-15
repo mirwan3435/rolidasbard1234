@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { api, openEvents } from "../api/client";
 import { useI18n } from "../i18n";
 import type { DictKey } from "../i18n/id";
 import { ageLabel } from "../lib/format";
+import { BottomNav, Sidebar, type SideItem } from "./Sidebar";
+import { Emblem } from "./ui/Emblem";
 import { StatusDot } from "./ui/Panel";
 
 const GROUPS: [DictKey, [string, DictKey][]][] = [
@@ -59,6 +61,12 @@ export type SymbolRow = {
   fit: { min_lot_risk_usd: number; risk_budget_usd: number; fits: boolean; note: string } | null;
 };
 
+function eventLine(row: { ts?: string; agent?: string; type?: string; summary?: string }) {
+  const time = row.ts ? row.ts.slice(11, 19) : "";
+  const text = `${time} ${row.agent || ""}/${row.type || ""} ${row.summary || ""}`.replace(/\s+/g, " ").trim();
+  return text.length > 1 ? text.slice(0, 180) : "";
+}
+
 export function useSettings() {
   return useQuery({
     queryKey: ["settings"],
@@ -75,8 +83,12 @@ export function Layout() {
   const { t, lang } = useI18n();
   const location = useLocation();
   const navigate = useNavigate();
-  const [tick, setTick] = useState("");
+  const [tape, setTape] = useState<string[]>([]);
+  const pending = useRef<string[]>([]);
+  const tapeRef = useRef<string[]>([]);
   const [now, setNow] = useState(() => new Date());
+  const [shellIn, setShellIn] = useState(false);
+  const [photo, setPhoto] = useState(false);
   const settings = useSettings();
   const refresh = settings.data?.refresh_ms ?? 2000;
   const status = useQuery({ queryKey: ["status-header"], queryFn: () => api<Status>("/api/status"), refetchInterval: refresh });
@@ -93,20 +105,51 @@ export function Layout() {
   });
   const review = useQuery({ queryKey: ["review-count"], queryFn: () => api<{ cards: unknown[] }>("/api/knowledge/review"), refetchInterval: 10000 });
   const decisions = useQuery({ queryKey: ["decision-badge"], queryFn: () => api<{ decisions: { ts: string; outcome: string }[] }>("/api/decisions?limit=200"), refetchInterval: 10000 });
+  function pushLine(line: string, immediate: boolean) {
+    const next = [line, ...pending.current.filter((item) => item !== line)].slice(0, 40);
+    pending.current = next;
+    if (immediate || tapeRef.current.length === 0) {
+      tapeRef.current = next;
+      setTape(next);
+    }
+  }
   useEffect(() => {
+    let cancelled = false;
+    api<{ events: { ts?: string; agent?: string; type?: string; summary?: string }[] }>("/api/events?limit=24")
+      .then((body) => {
+        if (cancelled) return;
+        const lines = (body.events || []).map(eventLine).filter(Boolean);
+        pending.current = lines;
+        if (tapeRef.current.length === 0 && lines.length) {
+          tapeRef.current = lines;
+          setTape(lines);
+        }
+      })
+      .catch(() => undefined);
     const socket = openEvents((event) => {
-      const row = event as { agent?: string; type?: string; summary?: string; ts?: string };
-      const time = row.ts ? row.ts.slice(11, 19) : "";
-      setTick(`${time} ${row.agent || ""}/${row.type || ""} ${row.summary || ""}`.slice(0, 160));
+      const line = eventLine(event as { agent?: string; type?: string; summary?: string; ts?: string });
+      if (line) pushLine(line, false);
     });
-    return () => socket.close();
+    return () => {
+      cancelled = true;
+      socket.close();
+    };
   }, []);
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000);
     return () => window.clearInterval(timer);
   }, []);
-  const theme = settings.data?.theme ?? "dark";
-  if (typeof document !== "undefined") document.documentElement.classList.toggle("light", theme === "light");
+  useEffect(() => {
+    const img = new Image();
+    img.onload = () => setPhoto(true);
+    img.onerror = () => setPhoto(false);
+    img.src = "/bg.jpg";
+  }, []);
+  useEffect(() => {
+    const onDone = () => setShellIn(true);
+    window.addEventListener("jarvis-splash-done", onDone);
+    return () => window.removeEventListener("jarvis-splash-done", onDone);
+  }, []);
   const snap = status.data;
   const title = settings.data?.app_title || "JARVIS // TRADE-BREIN";
   const used = costs.data?.tokens_today ?? 0;
@@ -128,30 +171,25 @@ export function Layout() {
     start(() => navigate(to));
   }
 
+  const items: SideItem[] = GROUPS.flatMap(([, links]) => links.map(([to, key]) => {
+    const count = to === "/kennisbank" ? waiting : to === "/keputusan" ? rejected : 0;
+    return { to, label: t(key), badge: count > 0 ? count : undefined };
+  }));
+
   return (
-    <div className="h-full grid" style={{ gridTemplateColumns: "220px 1fr" }}>
-      <aside className="border-r border-line p-3 overflow-auto" style={{ background: "var(--panel)" }}>
-        <div className="px-2 py-2 mb-3">
-          <div className="text-xs text-muted">PYTHON_AI_LAB</div>
-          <div className="font-semibold">JARVIS</div>
-        </div>
-        <nav>
-          {GROUPS.map(([label, links]) => (
-            <div key={label}>
-              <div className="nav-label">{t(label)}</div>
-              {links.map(([to, key]) => (
-                <NavLink key={to} to={to} end={to === "/"} onClick={(event) => go(event, to)} className={({ isActive }) => `side-link ${isActive ? "active" : ""}`}>
-                  {t(key)}
-                  {to === "/kennisbank" && waiting > 0 && <span className="badge ml-2">{waiting}</span>}
-                  {to === "/keputusan" && rejected > 0 && <span className="badge ml-2">{rejected}</span>}
-                </NavLink>
-              ))}
-            </div>
-          ))}
-        </nav>
-      </aside>
-      <div className="min-w-0 flex flex-col">
-        <header className="border-b border-line px-4 py-3 flex flex-wrap gap-2 items-center" style={{ background: "var(--panel)" }}>
+    <div
+      className={`relative h-full min-h-screen bg-cover bg-center bg-fixed ${photo ? "" : "bg-fallback"}`}
+      style={{
+        backgroundColor: "#f2f7fe",
+        backgroundImage: photo ? "url('/bg.jpg')" : undefined,
+      }}
+    >
+    <div className={`relative z-10 h-full${shellIn ? " shell-in" : ""}`}>
+      <Sidebar items={items} onNavigate={go} />
+      <BottomNav items={items} onNavigate={go} />
+      <div className="shell-bars flex h-full min-w-0 flex-col pb-24 md:pb-0">
+        <header className="glass-bar px-4 py-3 flex flex-wrap gap-2 items-center">
+          <Emblem size={18} state={snap?.kill_switch.active ? "error" : "idle"} alarm={!!snap?.kill_switch.active} />
           <strong className="mono text-sm">{title}</strong>
           <span className="pill"><StatusDot status="idle" />{snap?.mode === "demo" ? t("shell.demo") : t("shell.paper")}</span>
           {(agents.data?.agents || []).map((agent) => (
@@ -165,9 +203,20 @@ export function Layout() {
           <span className="text-xs text-muted">{t("shell.age")} {ageLabel(snap?.data_age_sec)}</span>
           <span className="text-xs mono ml-auto">{clock}</span>
         </header>
-        <div className="ticker"><span className="ticker-track">{tick || "—"}</span></div>
+        <div className="ticker glass-bar">
+          <span
+            className="ticker-track"
+            style={{ animationDuration: `${Math.max(28, tape.join(" ").length / 6)}s` }}
+            onAnimationIteration={() => {
+              tapeRef.current = pending.current;
+              setTape(pending.current);
+            }}
+          >
+            {(tape.length ? tape : ["—"]).join("    ·    ")}
+          </span>
+        </div>
         {snap?.kill_switch.active && (
-          <div className="banner bad">{t("shell.kill")} {snap.kill_switch.reason} {snap.kill_switch.reset_hint}</div>
+          <div className="banner bad flex items-center gap-2"><Emblem size={22} state="error" alarm />{t("shell.kill")} {snap.kill_switch.reason} {snap.kill_switch.reset_hint}</div>
         )}
         {snap?.commission_placeholder && <div className="banner warn">{t("shell.commissionDetail")} ({snap.commission_per_lot_usd})</div>}
         {(meta.data?.gitignore_missing.length ?? 0) > 0 && (
@@ -184,6 +233,7 @@ export function Layout() {
         </main>
         <p className="px-4 py-2 text-xs text-muted">{t("shell.noOrders")}</p>
       </div>
+    </div>
     </div>
   );
 }

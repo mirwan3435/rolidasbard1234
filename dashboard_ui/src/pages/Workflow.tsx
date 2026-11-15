@@ -19,6 +19,7 @@ import { api } from "../api/client";
 import { type NodeState, type Status, useSettings } from "../components/Layout";
 import { fmtTime, statusColor, statusLabel } from "../lib/format";
 import { useUi } from "../store/ui";
+import { WorkflowShowcase } from "../components/ui/WorkflowShowcase";
 import { useI18n } from "../i18n";
 
 const INFO: Record<string, { title: string; agent: string; note?: string; summary: string; input: string; output: string }> = {
@@ -176,6 +177,8 @@ function WorkflowCanvas() {
   const live = status.data?.nodes?.[selected];
 
   return (
+    <div className="space-y-4">
+    <WorkflowShowcase />
     <div className="h-[calc(100vh-140px)] min-h-[640px] grid gap-3" style={{ gridTemplateColumns: "1fr 380px" }}>
       <section className="card min-w-0 flex flex-col">
         <div className="flex items-center gap-3 p-3 border-b border-line">
@@ -267,6 +270,7 @@ function WorkflowCanvas() {
           </div>
         )}
       </aside>
+    </div>
     </div>
   );
 }

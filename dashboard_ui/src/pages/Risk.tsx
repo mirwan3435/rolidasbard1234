@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
 import { useSettings } from "../components/Layout";
+import { Emblem } from "../components/ui/Emblem";
 import { fmtTime, money } from "../lib/format";
 import { useI18n } from "../i18n";
 
@@ -64,7 +65,7 @@ export function RiskPage() {
         <Gauge label={t("risk.marginUsd")} value={data.total_margin_usd} max={data.margin_limit_usd} />
       </section>
       <section className="card p-3" style={{ borderColor: kill.active ? "var(--bad)" : undefined }}>
-        <h2 className="font-semibold">Kill-switch {kill.active ? t("risk.killOn") : t("risk.killOff")}</h2>
+        <h2 className="font-semibold flex items-center gap-2"><Emblem size={22} state={kill.active ? "error" : "idle"} alarm={kill.active} />Kill-switch {kill.active ? t("risk.killOn") : t("risk.killOff")}</h2>
         {kill.active && <p className="mt-2">{fmtTime(kill.since, settings.data?.timezone)} — {kill.reason}</p>}
         <p className="text-sm mt-2">{kill.reset_hint}</p>
       </section>

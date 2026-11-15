@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <circle class="mark-stroke" cx="16" cy="16" r="11" stroke="currentColor" stroke-width="1.6"/>
+  <path class="mark-stroke" d="M10 22 L22 10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+  <circle cx="22.5" cy="16" r="1.5" fill="currentColor"/>
+</svg>

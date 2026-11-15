@@ -1,12 +1,18 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api, sessionToken } from "../api/client";
-import { GrokMark } from "../components/ui/GrokMark";
+import { Emblem, type EmblemState } from "../components/ui/Emblem";
 import { Panel, Tabs } from "../components/ui/Panel";
 import { useI18n } from "../i18n";
 import { fmtTime } from "../lib/format";
 
 type Agent = { id: string; label: string; state: string; color: string; task: string; llm: boolean; events_today: number; summary?: string; tier?: string };
+function roomState(state?: string): EmblemState {
+  if (state === "working") return "working";
+  if (state === "error") return "error";
+  return "idle";
+}
+
 const PIPE = ["DATA", "CONTEXT", "SCOPE", "WHALES", "PROFILER", "DEBATE", "CORE", "PORTFOLIO", "RISK", "EXEC", "POSMGR"];
 const SIDE = ["JOURNAL", "WATCHDOG"];
 
@@ -57,6 +63,9 @@ export default function RoomPage() {
             <g key={item.id} transform={`translate(${item.x} ${item.y})`} onClick={() => setSelected(item.id)} style={{ cursor: "pointer" }}>
               <polygon points="0,18 34,18 46,28 12,28" fill={item.agent?.state === "error" ? "#3a1618" : "#121820"} stroke={item.agent?.color || "var(--border)"} />
               <polygon points="0,18 34,18 34,8 0,8" fill={item.agent?.state === "working" ? item.agent.color : "#0e141b"} opacity={item.agent?.state === "idle" ? 0.45 : 1} />
+              <foreignObject x="4" y="-8" width="28" height="28">
+                <Emblem size={22} state={roomState(item.agent?.state)} tone={item.agent?.color} />
+              </foreignObject>
               {item.active && <circle cx="18" cy="8" r="8" fill="none" stroke="var(--accent)" />}
               <text x="0" y="44" fill="var(--muted)" fontSize="9">{item.id}</text>
             </g>
@@ -66,7 +75,7 @@ export default function RoomPage() {
         <p className="text-xs text-muted">{t("room.legend")}</p>
       </Panel>
       <Panel title={selected} source={query.data?.source}>
-        <GrokMark state={byId[selected]?.state === "working" ? "active" : byId[selected]?.state === "error" ? "error" : "idle"} color={byId[selected]?.color} />
+        <Emblem size={28} state={roomState(byId[selected]?.state)} tone={byId[selected]?.color} />
         <p className="text-sm mt-2">{byId[selected]?.summary || byId[selected]?.task || "—"}</p>
         <p className="text-xs text-muted">{byId[selected]?.llm ? "LLM" : "DETERMINISTIC"} · {byId[selected]?.events_today ?? 0}</p>
         <h3 className="mt-3 text-sm">{t("room.events")}</h3>

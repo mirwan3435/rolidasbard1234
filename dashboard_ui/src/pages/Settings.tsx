@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { api } from "../api/client";
 import { useI18n } from "../i18n";
+import { applyTheme, readTheme } from "../lib/theme";
 
 const schema = z.object({
   theme: z.enum(["dark", "light"]),
@@ -28,7 +29,7 @@ export function SettingsPage() {
   const query = useQuery({ queryKey: ["settings"], queryFn: () => api<Settings>("/api/settings") });
   const [draft, setDraft] = useState<Settings | null>(null);
   const [message, setMessage] = useState("");
-  useEffect(() => { if (query.data) setDraft(query.data); }, [query.data]);
+  useEffect(() => { if (query.data) setDraft({ ...query.data, theme: readTheme() }); }, [query.data]);
   if (!draft) return <div className="skeleton h-32" />;
 
   async function save() {
@@ -44,7 +45,7 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="card p-4 max-w-xl space-y-3">
+    <div className="card settings-fields p-4 max-w-xl space-y-3">
       <label>{t("settings.language")}
         <select className="field" value={draft.language || "id"} onChange={(e) => { const language = e.target.value as Settings["language"]; setDraft({ ...draft, language }); setLang(language); }}>
           <option value="id">Bahasa Indonesia</option>
@@ -55,7 +56,11 @@ export function SettingsPage() {
         <input className="field" value={draft.app_title || "JARVIS // TRADE-BREIN"} onChange={(e) => setDraft({ ...draft, app_title: e.target.value })} />
       </label>
       <label>{t("settings.theme")}
-        <select className="field" value={draft.theme} onChange={(e) => setDraft({ ...draft, theme: e.target.value as Settings["theme"] })}>
+        <button type="button" className="theme-switch" aria-pressed={draft.theme === "light"} aria-label={t("settings.theme")} onClick={() => { const theme = draft.theme === "light" ? "dark" : "light"; setDraft({ ...draft, theme }); applyTheme(theme); }}>
+          <span className="theme-knob" />
+          <span>{draft.theme === "light" ? t("settings.light") : t("settings.dark")}</span>
+        </button>
+        <select className="field" value={draft.theme} onChange={(e) => { const theme = e.target.value as Settings["theme"]; setDraft({ ...draft, theme }); applyTheme(theme); }}>
           <option value="dark">{t("settings.dark")}</option>
           <option value="light">{t("settings.light")}</option>
         </select>

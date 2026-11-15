@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { api } from "../api/client";
-import { GrokMark } from "../components/ui/GrokMark";
+import { Emblem } from "../components/ui/Emblem";
 import { Drawer, Panel, Spinner } from "../components/ui/Panel";
 import { useI18n } from "../i18n";
 import { fmtTime, lineDiff } from "../lib/format";
@@ -63,11 +63,11 @@ export function SkillsPage() {
 
 function Card({ agent, live, onEdit }: { agent: AgentRow; live?: { state: string; events_today: number }; onEdit: () => void }) {
   const { t } = useI18n();
-  const state = live?.state === "working" ? "active" : live?.state === "error" ? "error" : "idle";
+  const visual = live?.state === "working" ? "working" : live?.state === "error" ? "error" : "idle";
   return (
     <article className="card p-3">
       <div className="flex items-center gap-2">
-        <GrokMark state={state} color={agent.color} />
+        <Emblem size={28} state={visual} tone={agent.color} />
         <strong>{agent.label || agent.name}</strong>
       </div>
       <p className="text-xs text-muted mt-1">{agent.tier} · {agent.llm ? t("skill.llm") : t("skill.det")}</p>

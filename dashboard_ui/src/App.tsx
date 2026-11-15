@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { bootstrap } from "./api/client";
 import { Layout } from "./components/Layout";
+import { Splash } from "./components/Splash";
 import { ConfigPage } from "./pages/Config";
 import { HealthPage } from "./pages/Health";
 import { KeysPage } from "./pages/Keys";
@@ -11,6 +12,7 @@ import { RiskPage } from "./pages/Risk";
 import { SettingsPage } from "./pages/Settings";
 import { SkillsPage } from "./pages/Skills";
 import { SymbolsPage } from "./pages/Symbols";
+import { GlassFilter } from "./components/ui/GlassFilter";
 import { Spinner } from "./components/ui/Panel";
 import { useI18n } from "./i18n";
 import { WorkflowPage } from "./pages/Workflow";
@@ -44,8 +46,9 @@ export default function App() {
     };
   }, [attempt]);
 
+  let body;
   if (failed) {
-    return (
+    body = (
       <div className="p-8 max-w-2xl">
         <h1 className="text-xl font-semibold">{t("shell.backend")}</h1>
         <p className="mt-3">{t("shell.runHint")}</p>
@@ -56,10 +59,11 @@ export default function App() {
         </button>
       </div>
     );
-  }
-  if (!ready) return <div className="p-8"><Spinner /></div>;
-
-  return (
+  } else if (!ready) {
+    body = <div className="p-8"><Spinner /></div>;
+  } else {
+    body = (
+    <Splash>
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<WorkflowPage />} />
@@ -82,5 +86,14 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
+    </Splash>
+    );
+  }
+
+  return (
+    <>
+      <GlassFilter />
+      {body}
+    </>
   );
 }

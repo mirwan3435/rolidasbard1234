@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { useI18n } from "../../i18n";
+import { Emblem } from "./Emblem";
 
 export function Panel({ title, subtitle, source, actions, children }: { title: string; subtitle?: string; source?: "real" | "sample"; actions?: ReactNode; children: ReactNode }) {
   const { t } = useI18n();
@@ -19,16 +20,17 @@ export function Panel({ title, subtitle, source, actions, children }: { title: s
 
 export function Spinner({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
   const dim = size === "sm" ? 14 : size === "lg" ? 28 : 18;
-  return <span className="spinner" style={{ width: dim, height: dim }} role="status" aria-busy="true" />;
+  return <span className="spinner" role="status" aria-busy="true"><Emblem size={dim} state="working" /></span>;
 }
 
 export function StatusDot({ status }: { status: string }) {
   const map: Record<string, string> = { connected: "ok", working: "ok", idle: "warn", disconnected: "bad", error: "bad", offline: "idle", not_configured: "idle" };
-  return <span className={`dot ${map[status] || "idle"}`} />;
+  const visual = status === "error" || status === "disconnected" ? "error" : status === "working" || status === "connected" ? "working" : "idle";
+  return <span className={`dot dot-mark ${map[status] || "idle"}`}><Emblem size={13} state={visual} /></span>;
 }
 
 export function EmptyState({ text }: { text: string }) {
-  return <p className="empty">{text}</p>;
+  return <div className="empty"><Emblem size={36} state="idle" breathe /><p>{text}</p></div>;
 }
 
 export function KpiCard({ label, value }: { label: string; value: string }) {
